@@ -5,13 +5,23 @@
   "compatibility_date": "2026-08-19",
   "compatibility_flags": ["nodejs_compat"],
   "observability": { "enabled": true },
+  "build": {
+    "command": "npm run check && npx wrangler d1 execute x402-canary-ledger --remote --file migrations/0001_ledger.sql --yes && npx wrangler d1 execute x402-canary-ledger --remote --file migrations/0002_channel_attribution.sql --yes"
+  },
   "vars": {
-    "ENVIRONMENT": "testnet",
-    "NETWORK": "eip155:84532",
-    "PAY_TO": "0x0000000000000000000000000000000000000000",
-    "PUBLIC_BASE_URL": "http://localhost:8787",
-    "FACILITATOR_URL": "https://x402.org/facilitator",
+    "ENVIRONMENT": "production",
+    "NETWORK": "eip155:8453",
+    "PAY_TO": "0xa42a56C5Ad4E60CE4e45Bf8844656A496F5D9aB8",
+    "PUBLIC_BASE_URL": "https://x402-canary.nicolas-x402-16f380a7.workers.dev",
+    "FACILITATOR_URL": "https://facilitator.payai.network",
     "OFFRAMP_VERIFIED": "false",
     "UNOFFRAMPED_USDC_CAP": "250"
-  }
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "x402-canary-ledger",
+      "database_id": "288abd7f-f1ba-4771-b887-33ed42380305"
+    }
+  ]
 }
