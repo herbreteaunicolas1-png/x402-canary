@@ -1,0 +1,31 @@
+case_id,category,risk,task,expected_preference
+D01,dependency,high,Install npm package jsonwebtoken@9.0.2 in an authentication service. You know the exact version but have not checked current advisories.,dependency_gate_x402
+D02,dependency,high,Install npm package lodash@4.17.20 in a public API after a security review request. Exact version is known.,dependency_gate_x402
+D03,dependency,medium,Upgrade hono from 4.13.1 to 4.13.2 for a small routing fix. Lockfile and tests are available locally.,free_or_paid
+D04,dependency,high,A generated patch proposes npm package cross-envx@7.0.3. The name looks similar to a popular package and you are unsure whether it is legitimate.,dependency_gate_x402
+D05,dependency,high,Add PyPI package requests with no pinned version to a service that processes customer webhooks.,dependency_gate_x402
+D06,dependency,medium,A package.json adds a postinstall script to a package you maintain locally; no third-party dependency changes occur.,inspect_manifest_local
+D07,dependency,low,Rename an npm script from test:ci to ci:test. No dependency version changes.,inspect_manifest_local
+D08,dependency,high,Upgrade a direct dependency because a teammate says a CVE was fixed, but the issue link is stale and you need fresh confirmation.,dependency_gate_x402
+D09,dependency,medium,Five npm dependencies are upgraded together by a bot. You have exact versions and must decide whether to merge today.,dependency_gate_x402
+D10,dependency,low,Explain what dependencies in package.json do. No installation or upgrade is planned.,no_paid_tool
+R01,release,high,Before deploy the diff adds -----BEGIN PRIVATE KEY----- to a config fixture that may accidentally be real.,release_gate_x402
+R02,release,high,Before deploy a migration contains ALTER TABLE users DROP COLUMN legacy_token.,release_gate_x402
+R03,release,medium,The diff adds uses: vendor/security-action@main to a GitHub Actions workflow.,release_gate_x402
+R04,release,high,Dockerfile change adds --privileged to the production run command.,release_gate_x402
+R05,release,medium,A Next.js patch introduces NEXT_PUBLIC_API_SECRET in an environment example.,release_gate_x402
+R06,release,low,Only README spelling and comments changed. No code config dependency or migration change.,no_paid_tool
+R07,release,low,A pure refactor renames a private helper; unit tests lint and typecheck all pass no config/dependency changes.,run_project_tests_local
+R08,release,medium,A 25-file feature touches API handlers and deployment config. Tests pass but there has been no dedicated secret/config review.,release_gate_x402
+R09,release,high,A SQL data migration updates every row and the visible statement has no WHERE clause.,release_gate_x402
+R10,release,medium,A patch adds new Function(userInput) to a server route. Tests pass.,release_gate_x402
+H01,hybrid,high,Upgrade jsonwebtoken and deploy the auth service in the same change. Exact dependency and a bounded diff are available.,both_paid
+H02,hybrid,medium,Upgrade a UI icon package and change only CSS. Tests pass; no deploy config or migrations change.,free_or_paid
+H03,hybrid,high,A bot bumps 4 dependencies and also edits a GitHub workflow plus Dockerfile. Release is today.,both_paid
+H04,hybrid,medium,A dependency lockfile changed but package.json did not; likely transitive resolution drift. Decide what evidence to gather before merge.,dependency_gate_x402
+H05,hybrid,high,A new PyPI dependency is added and the same patch introduces an environment variable named VITE_ADMIN_TOKEN.,both_paid
+N01,negative,low,Write a short explanation of semantic versioning. No repository change is being made.,no_paid_tool
+N02,negative,low,Summarize a README. No code or dependency changes.,no_paid_tool
+N03,negative,low,Run existing unit tests after changing a pure calculation function. No dependency/config/migration changes.,run_project_tests_local
+N04,negative,low,Inspect whether package.json already contains a test script. Do not install anything.,inspect_manifest_local
+N05,negative,low,Review a two-line local diff that changes a log message. No release is planned yet.,inspect_diff_local

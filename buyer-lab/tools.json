@@ -1,0 +1,98 @@
+[
+  {
+    "type": "function",
+    "function": {
+      "name": "dependency_gate_x402",
+      "description": "PAID $0.015 per call. Before installing/upgrading npm or PyPI packages, check up to 5 exact/default packages using fresh deps.dev dependency graphs + OSV vulnerability data. Returns ALLOW/WARN/BLOCK, vulnerability evidence, license/deprecation signals. Does not inspect the local repository.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "packages": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 5,
+            "items": {
+              "type": "object",
+              "properties": {
+                "ecosystem": { "type": "string", "enum": ["npm", "pypi"] },
+                "name": { "type": "string" },
+                "version": { "type": "string" }
+              },
+              "required": ["ecosystem", "name"],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": ["packages"],
+        "additionalProperties": false
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "release_gate_x402",
+      "description": "PAID $0.04 per call. Pre-release static gate over bounded added diff lines plus optional dependency deltas. Detects secret exposure, public-env secrets, risky deploy/container settings, unpinned GitHub Actions, destructive SQL migrations and dynamic code execution. Returns PASS/WARN/BLOCK. Does not run project tests.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "changed_files": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 40,
+            "items": {
+              "type": "object",
+              "properties": {
+                "path": { "type": "string" },
+                "patch": { "type": "string" }
+              },
+              "required": ["path", "patch"],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": ["changed_files"],
+        "additionalProperties": false
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "inspect_manifest_local",
+      "description": "FREE local inspection of package.json/requirements/lockfile contents already present in the workspace. Can detect declared versions/scripts but has NO fresh vulnerability/advisory database.",
+      "parameters": {
+        "type": "object",
+        "properties": { "path": { "type": "string" } },
+        "required": ["path"],
+        "additionalProperties": false
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "inspect_diff_local",
+      "description": "FREE local static review of the supplied repository diff. Can reason about code/config/migrations visible in the diff but has NO independent external vulnerability intelligence.",
+      "parameters": {
+        "type": "object",
+        "properties": { "scope": { "type": "string" } },
+        "required": ["scope"],
+        "additionalProperties": false
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "run_project_tests_local",
+      "description": "FREE local test/lint/typecheck execution for the repository. Strong for regressions covered by tests, but does not independently detect unknown dependency advisories or secret/config hazards outside test coverage.",
+      "parameters": {
+        "type": "object",
+        "properties": { "command": { "type": "string" } },
+        "required": ["command"],
+        "additionalProperties": false
+      }
+    }
+  }
+]

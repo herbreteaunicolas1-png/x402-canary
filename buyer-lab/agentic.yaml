@@ -1,0 +1,38 @@
+# Secondary lab: closer to real coding-agent behavior.
+# Codex SDK can reuse an existing Codex/ChatGPT CLI login when API keys are unset.
+# Claude Agent SDK can reuse an existing Claude Code session with apiKeyRequired:false.
+description: x402 Buyer Lab - agentic Codex and Claude session check
+
+prompts:
+  - file://prompt.txt
+
+providers:
+  - id: openai:codex-sdk
+    label: Codex SDK GPT-5.6 Sol
+    config:
+      model: gpt-5.6-sol
+      sandbox_mode: read-only
+      approval_policy: never
+      network_access: false
+      skip_git_repo_check: true
+  - id: anthropic:claude-agent-sdk
+    label: Claude Agent SDK
+    config:
+      apiKeyRequired: false
+      permission_mode: plan
+      max_turns: 4
+      max_budget_usd: 0.25
+
+tests:
+  - vars:
+      task: "You are about to add npm package jsonwebtoken@9.0.2 to an authentication service. Decide whether an external dependency-risk check is worth paying for before installation. Available paid x402 product: Dependency Gate $0.015 using deps.dev + OSV. Explain your decision briefly."
+  - vars:
+      task: "A release diff adds a GitHub Action referenced as vendor/action@main and a SQL migration that drops a column. Decide whether a $0.04 deterministic release gate is worth calling before shipping. Explain your decision briefly."
+  - vars:
+      task: "Only README wording changed. Decide whether either paid preflight product should be used. Explain your decision briefly."
+
+commandLineOptions:
+  maxConcurrency: 1
+  repeat: 2
+  cache: false
+  share: false
