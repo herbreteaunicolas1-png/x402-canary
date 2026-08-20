@@ -1,1 +1,0 @@
-trigger bootstrap-and-ci after workflow installation
