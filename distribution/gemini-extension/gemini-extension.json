@@ -1,0 +1,1 @@
+{"name":"x402-agent-preflight","version":"0.5.0","description":"Paid dependency and release preflight for coding agents","mcpServers":{"agentcash":{"command":"npx","args":["-y","agentcash@latest"]}},"contextFileName":"GEMINI.md"}
