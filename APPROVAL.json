@@ -1,0 +1,25 @@
+{
+  "authorityDate": "2026-08-20",
+  "version": "0.5.0",
+  "approved": true,
+  "productionWorker": "x402-canary",
+  "productionOrigin": "https://x402-canary.nicolas-x402-16f380a7.workers.dev",
+  "productionNetwork": "eip155:8453",
+  "payee": "0xa42a56C5Ad4E60CE4e45Bf8844656A496F5D9aB8",
+  "automaticPaidSelfTestUsd": 0,
+  "publicationPaths": [
+    "/v1/agent/dependency-gate",
+    "/v1/agent/release-gate"
+  ],
+  "pricesUsd": {
+    "/v1/agent/dependency-gate": 0.015,
+    "/v1/agent/release-gate": 0.04
+  },
+  "constraints": {
+    "noSecondWorker": true,
+    "noSecondWallet": true,
+    "noBulkX402scanRefresh": true,
+    "noCleanChef": true,
+    "externalDemandMustBeIndependent": true
+  }
+}
