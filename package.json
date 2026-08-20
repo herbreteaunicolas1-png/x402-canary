@@ -1,0 +1,28 @@
+{
+  "name": "x402-canary",
+  "version": "0.5.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit",
+    "test": "node --experimental-strip-types --test test/*.test.ts",
+    "check": "npm run gate:offline && npm run typecheck",
+    "gate:offline": "node scripts/offline-gate.mjs",
+    "deploy:cloudflare": "powershell -ExecutionPolicy Bypass -File ./scripts/deploy-cloudflare.ps1"
+  },
+  "dependencies": {
+    "@x402/core": "2.22.0",
+    "@x402/evm": "2.22.0",
+    "@x402/extensions": "2.22.0",
+    "@x402/hono": "2.22.0",
+    "hono": "4.13.2",
+    "viem": "2.55.18"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "5.20260819.1",
+    "typescript": "5.9.2",
+    "wrangler": "4.124.0"
+  }
+}
