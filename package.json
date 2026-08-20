@@ -4,13 +4,12 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "wrangler dev",
+    "dev": "wrangler dev --config wrangler.testnet.jsonc",
     "deploy": "wrangler deploy",
     "typecheck": "tsc --noEmit",
     "test": "node --experimental-strip-types --test test/*.test.ts",
     "check": "npm run gate:offline && npm run typecheck",
-    "gate:offline": "node scripts/offline-gate.mjs",
-    "deploy:cloudflare": "powershell -ExecutionPolicy Bypass -File ./scripts/deploy-cloudflare.ps1"
+    "gate:offline": "node scripts/offline-gate.mjs"
   },
   "dependencies": {
     "@x402/core": "2.22.0",
@@ -22,6 +21,7 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "5.20260819.1",
+    "@types/node": "24.13.3",
     "typescript": "5.9.2",
     "wrangler": "4.124.0"
   }
