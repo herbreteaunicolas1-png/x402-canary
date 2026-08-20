@@ -1,0 +1,4 @@
+interface:
+  display_name: X402 Agent Preflight
+  short_description: Paid dependency and release safety gates
+  default_prompt: Use the x402 dependency gate before material npm/PyPI installs or upgrades and the release gate before declaring deployable changes ready. Never loop paid calls.
