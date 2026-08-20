@@ -1,0 +1,14 @@
+import { ROUTES } from "./catalog.ts";
+import { formatUsdAmount } from "./pricing.ts";
+
+export function buildOpenApi(baseUrl: string, contactEmail?: string) {
+  const paths: Record<string, unknown> = {};
+  for (const route of ROUTES) {
+    paths[route.path] = { post: { operationId: route.id, summary: route.description, description: route.description, tags: [route.family, route.engine], "x-family": route.family, "x-payment-info": { protocols: [{ x402: {} }], price: { mode: "fixed", currency: "USD", amount: formatUsdAmount(route.priceUsd) } }, requestBody: { required: true, content: { "application/json": { schema: route.schema } } }, responses: { "200": { description: "Successful response", content: { "application/json": { schema: { type: "object", properties: { data: {}, meta: { type: "object" } }, required: ["data","meta"] }, example: { data: route.outputExample, meta: { engine: route.engine } } } } }, "400": { description: "Invalid input" }, "402": { description: "Payment Required" }, "502": { description: "Upstream unavailable" }, "504": { description: "Upstream timeout" } } } };
+  }
+  return { openapi: "3.1.0", info: { title: "x402 Canary Agent Preflight API", version: "0.5.0", description: "Pay-per-call agent preflight gates plus the preserved x402 infrastructure canary portfolio. Commercial priority: dependency and release safety checks for coding agents.", "x-guidance": "For coding agents, call /v1/agent/dependency-gate immediately before adding/upgrading npm or PyPI packages, and /v1/agent/release-gate before declaring deployable work complete. Paid routes challenge with x402 before body validation. Bazaar metadata is declared on every paid route. The legacy canary routes remain available but are not the primary commercial products. No PII/social/trading/write actions.", ...(contactEmail ? { contact: { email: contactEmail } } : {}) }, servers: [{ url: baseUrl }], paths };
+}
+
+export function buildLlmsTxt(baseUrl: string): string {
+  return ["# x402 Canary Agent Preflight API", "", "Pay-per-call preflight gates for coding agents plus preserved read-only canary utilities.", `OpenAPI: ${baseUrl.replace(/\/$/, "")}/openapi.json`, `Catalog: ${baseUrl.replace(/\/$/, "")}/catalog`, "Payment: x402 on Base; testnet uses Base Sepolia.", "Primary pricing: Dependency Gate $0.015 for up to five packages; Release Gate $0.04 for one bounded changed-file bundle. Legacy canary routes retain their existing prices.", `Dependency Gate: ${baseUrl.replace(/\/$/, "")}/v1/agent/dependency-gate`, `Release Gate: ${baseUrl.replace(/\/$/, "")}/v1/agent/release-gate`, `Full agent guidance: ${baseUrl.replace(/\/$/, "")}/llms-full.txt`, `x402 health: ${baseUrl.replace(/\/$/, "")}/v1/x402/health`, `Intent gateway: ${baseUrl.replace(/\/$/, "")}/v1/intent/resolve`, "No account, subscription, PII enrichment, trading execution, or write actions."].join("\n");
+}
