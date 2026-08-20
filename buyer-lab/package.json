@@ -1,0 +1,16 @@
+{
+  "name": "x402-buyer-lab",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "eval": "promptfoo eval -c promptfooconfig.yaml -o results/latest.json --no-progress-bar --no-table",
+    "eval:agentic": "promptfoo eval -c agentic.yaml -o results/agentic-latest.json --no-progress-bar --no-table",
+    "report": "node summarize.mjs results/latest.json",
+    "report:agentic": "node summarize.mjs results/agentic-latest.json",
+    "run": "npm run eval && npm run report"
+  },
+  "devDependencies": {
+    "promptfoo": "0.122.0"
+  }
+}
