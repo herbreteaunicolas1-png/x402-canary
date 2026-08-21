@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { ROUTES } from "../src/catalog.ts";
+import { ROUTES } from "../src/catalog-authority.ts";
 import { buildOpenApi } from "../src/openapi.ts";
 import { discoveryInputExample } from "../src/discovery.ts";
 import { formatUsdAmount } from "../src/pricing.ts";
@@ -10,6 +10,7 @@ test("AgentCash/Bazaar discovery contract is complete for every paid operation",
   assert.equal(doc.openapi, "3.1.0");
   assert.equal(doc.info.version, "0.5.0");
   assert.ok(doc.info["x-guidance"]);
+  assert.equal(Object.keys(doc.paths).length, 32);
   for (const route of ROUTES) {
     const op = doc.paths[route.path]?.post;
     assert.ok(op, `missing OpenAPI operation ${route.path}`);
@@ -23,7 +24,12 @@ test("AgentCash/Bazaar discovery contract is complete for every paid operation",
   }
 });
 
-test("commercial launch family contains exactly dependency and release gates", () => {
+test("existing agent-security products remain unchanged", () => {
   const products = ROUTES.filter(r => r.family === "agent-security");
   assert.deepEqual(products.map(r => [r.id,r.priceUsd]), [["dependency-gate",0.015],["release-gate",0.04]]);
+});
+
+test("need-driven commercial family contains exactly three external-context tools", () => {
+  const products = ROUTES.filter(r => r.family === "agent-context");
+  assert.deepEqual(products.map(r => [r.id,r.priceUsd]), [["npm-symbol-context",0.015],["npm-api-diff",0.025],["browser-context",0.03]]);
 });
