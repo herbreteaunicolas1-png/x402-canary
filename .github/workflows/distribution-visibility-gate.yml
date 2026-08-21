@@ -9,10 +9,12 @@ on:
       - "src/openapi.ts"
       - "src/payment.ts"
       - "src/index.ts"
+      - "src/public-distribution.ts"
       - ".github/workflows/distribution-visibility-gate.yml"
 
 permissions:
   contents: read
+  issues: write
 
 jobs:
   buyer-visibility:
@@ -21,6 +23,11 @@ jobs:
     env:
       ORIGIN: https://x402-canary.nicolas-x402-16f380a7.workers.dev
     steps:
+      - name: Initialize report
+        shell: bash
+        run: |
+          printf '%s\n' "commit=${GITHUB_SHA}" "origin=${ORIGIN}" > /tmp/distribution-report.txt
+
       - name: Wait for active 32-route Cloudflare runtime
         shell: bash
         run: |
@@ -34,6 +41,26 @@ jobs:
             sleep 10
           done
           test "$count" = "32"
+          echo 'RUNTIME_32_GREEN=1' >> /tmp/distribution-report.txt
+
+      - name: Verify public distribution surface
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsS --max-time 20 "$ORIGIN/distribution" -o /tmp/distribution.json
+          curl -fsS --max-time 20 "$ORIGIN/skill.md" -o /tmp/skill.md
+          node <<'NODE'
+          const fs = require('fs');
+          const d = JSON.parse(fs.readFileSync('/tmp/distribution.json','utf8'));
+          if (d.status !== 'public' || d.paid_route_count !== 32) throw new Error('distribution_manifest_invalid');
+          if (d.buyer_bridge?.provider !== 'AgentCash') throw new Error('buyer_bridge_missing');
+          const ids = (d.capabilities || []).map(x => x.id);
+          for (const id of ['npm-symbol-context','npm-api-diff','browser-context']) if (!ids.includes(id)) throw new Error(`distribution_missing=${id}`);
+          const skill = fs.readFileSync('/tmp/skill.md','utf8');
+          if (!skill.includes('https://agentcash.dev/skill.md')) throw new Error('agentcash_skill_bridge_missing');
+          console.log('PUBLIC_DISTRIBUTION_GREEN=1');
+          NODE
+          echo 'PUBLIC_DISTRIBUTION_GREEN=1' >> /tmp/distribution-report.txt
 
       - name: Verify exact OpenAPI launch surface
         shell: bash
@@ -55,6 +82,7 @@ jobs:
           for (const p of required) if (!d.paths?.[p]?.post) throw new Error(`missing_openapi_route=${p}`);
           console.log('OPENAPI_32_GREEN=1');
           NODE
+          echo 'OPENAPI_32_GREEN=1' >> /tmp/distribution-report.txt
 
       - name: Verify three new routes challenge with x402 before validation
         shell: bash
@@ -70,7 +98,7 @@ jobs:
             test "$code" = "402"
             grep -qi '^payment-required:' /tmp/h
           done
-          echo 'NEW_ROUTES_402_GREEN=1'
+          echo 'NEW_ROUTES_402_GREEN=1' >> /tmp/distribution-report.txt
 
       - name: Validate AgentCash discovery contract
         shell: bash
@@ -80,14 +108,14 @@ jobs:
           grep -q 'npm-symbol-context' /tmp/agentcash-discover.txt
           grep -q 'npm-api-diff' /tmp/agentcash-discover.txt
           grep -q 'browser-context' /tmp/agentcash-discover.txt
-          echo 'AGENTCASH_DISCOVERY_GREEN=1'
+          echo 'AGENTCASH_DISCOVERY_GREEN=1' >> /tmp/distribution-report.txt
 
       - name: Register origin in AgentCash index
         shell: bash
         run: |
           set -euo pipefail
           npx -y agentcash@latest register "$ORIGIN" --yes --format json | tee /tmp/agentcash-register.json
-          echo 'AGENTCASH_REGISTER_ATTEMPTED=1'
+          echo 'AGENTCASH_REGISTER_GREEN=1' >> /tmp/distribution-report.txt
 
       - name: Verify buyer search can find each new capability
         shell: bash
@@ -96,11 +124,12 @@ jobs:
           search_until_visible() {
             query="$1"
             expected="$2"
+            outfile="$3"
             visible=0
             for attempt in $(seq 1 16); do
               echo "search attempt=$attempt query=$query expected=$expected"
               output="$(npx -y agentcash@latest search "$query" --format json 2>&1 || true)"
-              printf '%s\n' "$output" | tee /tmp/search-last.txt
+              printf '%s\n' "$output" | tee "$outfile"
               if printf '%s' "$output" | grep -Fq "$expected"; then
                 visible=1
                 break
@@ -109,7 +138,32 @@ jobs:
             done
             test "$visible" = "1"
           }
-          search_until_visible 'npm docs TypeScript API package symbols' '/v1/agent/npm-symbol-context'
-          search_until_visible 'npm package upgrade breaking changes migration API diff' '/v1/agent/npm-api-diff'
-          search_until_visible 'browser snapshot rendered web page JavaScript accessibility' '/v1/agent/browser-context'
-          echo 'AGENTCASH_BUYER_SEARCH_GREEN=1'
+          search_until_visible 'npm docs TypeScript API package symbols' '/v1/agent/npm-symbol-context' /tmp/search-symbol.txt
+          search_until_visible 'npm package upgrade breaking changes migration API diff' '/v1/agent/npm-api-diff' /tmp/search-diff.txt
+          search_until_visible 'browser snapshot rendered web page JavaScript accessibility' '/v1/agent/browser-context' /tmp/search-browser.txt
+          echo 'AGENTCASH_BUYER_SEARCH_GREEN=1' >> /tmp/distribution-report.txt
+
+      - name: Publish observable verdict
+        if: always()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          status='${{ job.status }}'
+          {
+            echo "## Distribution visibility gate — ${status}"
+            echo
+            echo '```text'
+            cat /tmp/distribution-report.txt 2>/dev/null || true
+            echo '```'
+            for f in /tmp/agentcash-discover.txt /tmp/agentcash-register.json /tmp/search-symbol.txt /tmp/search-diff.txt /tmp/search-browser.txt; do
+              if [ -f "$f" ]; then
+                echo
+                echo "### $(basename "$f") — tail"
+                echo '```text'
+                tail -n 35 "$f"
+                echo '```'
+              fi
+            done
+          } > /tmp/gate-comment.md
+          gh issue comment 1 --repo "$GITHUB_REPOSITORY" --body-file /tmp/gate-comment.md
