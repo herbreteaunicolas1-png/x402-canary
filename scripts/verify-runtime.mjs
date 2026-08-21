@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { ROUTES } from "../src/catalog.ts";
+import { ROUTES } from "../src/catalog-authority.ts";
 import { discoveryInputExample } from "../src/discovery.ts";
 function arg(name){const i=process.argv.indexOf(name);return i>=0?process.argv[i+1]:undefined}
 const origin=(arg("--origin")??"").replace(/\/$/,"");const network=arg("--network")??"";const payee=(arg("--payee")??"").toLowerCase();
