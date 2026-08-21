@@ -13,9 +13,13 @@ test("legacy 29-route portfolio is preserved and effective authority adds exactl
   assert.deepEqual(ROUTES.slice(29).map(r => r.id), ["npm-symbol-context","npm-api-diff","browser-context"]);
 
   const index = readFileSync(new URL("../src/index.ts", import.meta.url), "utf8");
-  assert.match(index, /for\(const route of ROUTES\)/);
+  assert.match(index, /for\s*\(const route of ROUTES\)/);
   assert.match(index, /PAID_HANDLERS\[route\.path\]/);
-  const handlerPaths = [...index.matchAll(/"(\/v1\/[^"\n]+)":(?:async\(b,env\)|\(b,env\)|b)=>/g)].map(m => m[1]).sort();
+  const start = index.indexOf("const PAID_HANDLERS");
+  const end = index.indexOf("const canonicalPaths", start);
+  assert.ok(start >= 0 && end > start, "paid handler block missing");
+  const handlerBlock = index.slice(start, end);
+  const handlerPaths = [...handlerBlock.matchAll(/"(\/v1\/[^"\n]+)"\s*:/g)].map(m => m[1]).sort();
   assert.deepEqual(handlerPaths, ROUTES.map(r => r.path).sort());
 
   const doc:any = buildOpenApi("https://api.example.com");
