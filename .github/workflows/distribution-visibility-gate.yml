@@ -28,17 +28,15 @@ jobs:
         run: |
           printf '%s\n' "commit=${GITHUB_SHA}" "origin=${ORIGIN}" "run=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" > /tmp/distribution-report.txt
 
+      - name: Checkout exact private source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 1
+
       - name: Verify source gate independently of Cloudflare
         shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          rm -rf /tmp/source
-          git -c http.extraheader="AUTHORIZATION: bearer ${GH_TOKEN}" clone --quiet --no-checkout "https://github.com/${GITHUB_REPOSITORY}.git" /tmp/source
-          cd /tmp/source
-          git fetch --quiet --depth=1 origin "${GITHUB_SHA}"
-          git checkout --quiet FETCH_HEAD
           npm install --ignore-scripts --no-audit --no-fund
           npm run check
           echo 'SOURCE_GATE_GREEN=1' >> /tmp/distribution-report.txt
@@ -109,8 +107,8 @@ jobs:
           ];
           if (paths.length !== 32) throw new Error(`openapi_route_count=${paths.length}`);
           for (const p of required) if (!d.paths?.[p]?.post) throw new Error(`missing_openapi_route=${p}`);
-          const text = JSON.stringify(d.info || {});
-          for (const keyword of ['npm docs','breaking changes','browser snapshot']) if (!text.toLowerCase().includes(keyword)) throw new Error(`openapi_keyword_missing=${keyword}`);
+          const text = JSON.stringify(d.info || {}).toLowerCase();
+          for (const keyword of ['npm docs','breaking changes','browser snapshot']) if (!text.includes(keyword)) throw new Error(`openapi_keyword_missing=${keyword}`);
           console.log('OPENAPI_32_GREEN=1');
           NODE
           echo 'OPENAPI_32_GREEN=1' >> /tmp/distribution-report.txt
