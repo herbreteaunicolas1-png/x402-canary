@@ -15,7 +15,7 @@ test("public distribution exposes the exact buyer bridge and three need-driven p
     ["npm-api-diff",0.025],
     ["browser-context",0.03],
   ]);
-  assert.match(skillMarkdown(base), /Set up https:\/\/agentcash\.dev\/skill\.md/);
+  assert.match(skillMarkdown(base), /set up https:\/\/agentcash\.dev\/skill\.md/i);
   assert.match(skillMarkdown(base), /npm docs/);
   assert.match(skillMarkdown(base), /breaking changes/);
   assert.match(skillMarkdown(base), /browser snapshot/);
