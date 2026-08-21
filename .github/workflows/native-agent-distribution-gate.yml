@@ -1,0 +1,159 @@
+name: Native Agent Distribution Gate
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".claude-plugin/**"
+      - ".agents/**"
+      - "plugins/x402-agent-context/**"
+      - "distribution/claude-plugin/**"
+      - "distribution/codex-skill/**"
+      - "distribution/gemini-extension/**"
+      - ".mcp.json"
+      - "GEMINI.md"
+      - "gemini-extension.json"
+      - "scripts/install-three-agents.ps1"
+      - "DISTRIBUTION_PUBLIC_CHAIN.md"
+      - "src/catalog-authority.ts"
+      - "src/openapi.ts"
+      - "src/payment.ts"
+      - "src/index.ts"
+      - ".github/workflows/native-agent-distribution-gate.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: native-agent-distribution-main
+  cancel-in-progress: true
+
+jobs:
+  native-distribution:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      ORIGIN: https://x402-canary.nicolas-x402-16f380a7.workers.dev
+      REPO: https://github.com/herbreteaunicolas1-png/x402-canary
+    steps:
+      - name: Checkout public distribution source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 1
+
+      - name: Verify repository is public
+        shell: bash
+        run: |
+          set -euo pipefail
+          visibility="$(curl -fsS --max-time 20 https://api.github.com/repos/${GITHUB_REPOSITORY} | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const j=JSON.parse(s);process.stdout.write(j.visibility||"")})')"
+          test "$visibility" = "public"
+          echo "PUBLIC_REPOSITORY_GREEN=1"
+
+      - name: Verify Claude Code marketplace bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs=require('fs');
+          const market=JSON.parse(fs.readFileSync('.claude-plugin/marketplace.json','utf8'));
+          if (market.name !== 'x402-agent-context') throw new Error('claude_marketplace_name');
+          const p=(market.plugins||[]).find(x=>x.name==='x402-agent-context');
+          if (!p) throw new Error('claude_plugin_missing');
+          const source=p.source;
+          if (typeof source !== 'string' || !source.startsWith('./')) throw new Error('claude_source_invalid');
+          const root=source.replace(/^\.\//,'');
+          if (!fs.existsSync(`${root}/.claude-plugin/plugin.json`)) throw new Error('claude_manifest_missing');
+          if (!fs.existsSync(`${root}/.mcp.json`)) throw new Error('claude_mcp_missing');
+          const mcp=JSON.parse(fs.readFileSync(`${root}/.mcp.json`,'utf8'));
+          if (mcp.mcpServers?.agentcash?.command !== 'npx') throw new Error('claude_agentcash_missing');
+          NODE
+          echo "CLAUDE_PUBLIC_MARKETPLACE_GREEN=1"
+
+      - name: Verify Codex plugin marketplace bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs=require('fs');
+          const market=JSON.parse(fs.readFileSync('.agents/plugins/marketplace.json','utf8'));
+          const p=(market.plugins||[]).find(x=>x.name==='x402-agent-context');
+          if (!p) throw new Error('codex_plugin_missing');
+          if (p.source?.source !== 'local' || p.source?.path !== './plugins/x402-agent-context') throw new Error('codex_source_invalid');
+          if (!(p.policy?.products||[]).includes('CODEX')) throw new Error('codex_product_scope_missing');
+          const root='plugins/x402-agent-context';
+          const manifest=JSON.parse(fs.readFileSync(`${root}/.codex-plugin/plugin.json`,'utf8'));
+          if (manifest.name !== 'x402-agent-context') throw new Error('codex_manifest_name');
+          if (!fs.existsSync(`${root}/.mcp.json`)) throw new Error('codex_mcp_missing');
+          if (!fs.existsSync(`${root}/skills`)) throw new Error('codex_skills_missing');
+          const mcp=JSON.parse(fs.readFileSync(`${root}/.mcp.json`,'utf8'));
+          if (mcp.mcpServers?.agentcash?.command !== 'npx') throw new Error('codex_agentcash_missing');
+          NODE
+          echo "CODEX_PUBLIC_PLUGIN_GREEN=1"
+
+      - name: Verify Gemini CLI extension bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs=require('fs');
+          const m=JSON.parse(fs.readFileSync('gemini-extension.json','utf8'));
+          if (m.name !== 'x402-agent-context') throw new Error('gemini_name');
+          if (m.contextFileName !== 'GEMINI.md') throw new Error('gemini_context');
+          if (m.mcpServers?.agentcash?.command !== 'npx') throw new Error('gemini_agentcash_missing');
+          if (!fs.existsSync('GEMINI.md')) throw new Error('gemini_context_file_missing');
+          NODE
+          echo "GEMINI_PUBLIC_EXTENSION_GREEN=1"
+
+      - name: Verify production has 32 routes and three paid resources
+        shell: bash
+        run: |
+          set -euo pipefail
+          ok=0
+          for attempt in $(seq 1 24); do
+            health="$(curl -fsS --max-time 20 "$ORIGIN/health" || true)"
+            routes="$(node -e 'try{const j=JSON.parse(process.argv[1]);process.stdout.write(String(j.routes||0))}catch{process.stdout.write("0")}' "$health")"
+            echo "runtime attempt=$attempt routes=$routes"
+            if [ "$routes" = "32" ]; then ok=1; break; fi
+            sleep 10
+          done
+          test "$ok" = "1"
+          for path in npm-symbol-context npm-api-diff browser-context; do
+            rm -f /tmp/h
+            code="$(curl -sS --max-time 30 -D /tmp/h -o /dev/null -w '%{http_code}' -X POST "$ORIGIN/v1/agent/$path" -H 'content-type: application/json' --data '{}')"
+            test "$code" = "402"
+            grep -qi '^payment-required:' /tmp/h
+            echo "X402_GREEN $path"
+          done
+
+      - name: Refresh AgentCash registry and prove buyer search visibility
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx -y agentcash@latest register "$ORIGIN" || true
+          npx -y agentcash@latest add "$ORIGIN/skill.md" || true
+          npx -y @agentcash/discovery@latest discover "$ORIGIN" --json | tee /tmp/discover.json
+          for id in npm-symbol-context npm-api-diff browser-context; do grep -q "$id" /tmp/discover.json; done
+          check_search() {
+            query="$1"; expected="$2"; hit=0
+            for attempt in $(seq 1 12); do
+              out="$(npx -y agentcash@latest search "$query" 2>&1 || true)"
+              printf '%s\n' "$out"
+              if printf '%s' "$out" | grep -Fq "$expected"; then hit=1; break; fi
+              sleep 15
+            done
+            test "$hit" = "1"
+          }
+          check_search 'npm docs TypeScript API package symbols' '/v1/agent/npm-symbol-context'
+          check_search 'npm package upgrade breaking changes migration API diff' '/v1/agent/npm-api-diff'
+          check_search 'browser snapshot rendered web page JavaScript accessibility' '/v1/agent/browser-context'
+          echo "AGENTCASH_NATURAL_LANGUAGE_SEARCH_GREEN=1"
+
+      - name: Final native distribution verdict
+        shell: bash
+        run: |
+          echo "CLAUDE_CODE_PUBLIC_INSTALL_SOURCE=GREEN"
+          echo "CODEX_PUBLIC_INSTALL_SOURCE=GREEN"
+          echo "GEMINI_CLI_PUBLIC_INSTALL_SOURCE=GREEN"
+          echo "AGENTCASH_BUYER_SEARCH=GREEN"
+          echo "NO_PAYMENT_SENT=1"
