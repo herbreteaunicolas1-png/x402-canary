@@ -1,4 +1,4 @@
 interface:
-  display_name: X402 Agent Preflight
-  short_description: Paid dependency and release safety gates
-  default_prompt: Use the x402 dependency gate before material npm/PyPI installs or upgrades and the release gate before declaring deployable changes ready. Never loop paid calls.
+  display_name: X402 Agent Context
+  short_description: Fresh npm/browser context plus paid preflight
+  default_prompt: Prefer local evidence when sufficient. Use x402 NPM Symbol Context for exact published API signatures, NPM API Diff for uncertain upgrades, Browser Context for JavaScript-rendered public pages, and the existing dependency/release gates only when independent preflight evidence is worth the stated price. Never loop paid calls.
