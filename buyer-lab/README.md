@@ -1,76 +1,62 @@
-# Coding-Agent Need Discovery + Buyer Lab
+# x402 Buyer / Need Discovery Lab
 
-The methodology is **need first, product second**.
+The lab has two separate purposes:
 
-## Stage 1 — Need Discovery (primary)
+1. **Need discovery first** — ask real coding-agent model families what external evidence/action they genuinely lack before any product is proposed.
+2. **Product selection second** — only after a need exists, measure whether a concrete paid tool is voluntarily selected over free local evidence.
 
-GPT, Claude and Gemini receive realistic engineering tasks **without seeing any x402 product or proposed tool**. They are told which local capabilities are free and must identify an external capability only when local evidence is genuinely insufficient.
+## No paid AI Gateway
 
-30 scenarios × 3 model families × 2 repeats = 180 observations.
+The Need Discovery pilot does **not** use Vercel AI Gateway and does not require OpenAI/Anthropic/Google developer API keys.
 
-Providers:
-- GPT-5.6 Sol
-- Claude Opus 4.6
-- Gemini 3.1 Pro Preview
+It runs locally through existing authenticated CLIs:
+- Codex CLI using the user's ChatGPT/Codex login;
+- Claude Code using the user's Claude app login;
+- Gemini CLI using Google login.
 
-Each need record captures:
-- exact missing capability
-- workflow trigger
-- missing evidence/action
-- likely frequency
-- maximum acceptable per-call price
-- latency tolerance
-- freshness requirement
-- why native/local reasoning is insufficient
+`cli-provider.mjs` removes provider API-key environment variables before spawning those CLIs so a forgotten developer key does not silently turn the calibration into separate API spend.
 
-Run:
+The pilot is intentionally bounded and `maxConcurrency: 1`.
 
-```bash
-npm install
-npm run run:needs
+## Run Need Discovery on Windows
+
+From the repository root:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\buyer-lab\run-local-need-discovery.ps1
 ```
 
-Results are aggregated by `summarize-needs.mjs`. A verbal model preference is **hypothesis evidence only**. A product candidate becomes strong only when need discovery agrees with revealed behavior such as MCP adoption or real paid transactions.
+Prerequisites:
+- `codex` installed and logged in;
+- `claude` installed and logged in;
+- `gemini` installed and logged in;
+- Node/npm available.
 
-## Stage 2 — Buyer selection
+The script installs the pinned Promptfoo version, runs the bounded cross-model pilot and writes:
+- `buyer-lab/results/needs-pilot.json`
+- `buyer-lab/results/needs-pilot-report.txt`
 
-`promptfooconfig.yaml` remains as a downstream behavioral test. Here products are finally exposed with real prices and `tool_choice:auto`, alongside free local alternatives. The model is never forced to buy.
+Do not claim `NEED_DISCOVERY_GREEN` unless the real result contains all three providers.
 
-Run:
+## What the models are asked
 
-```bash
-npm run run
-```
+They are given realistic engineering tasks and free local capabilities. They are **not shown our products**. They must first decide whether local evidence is sufficient. When it is not, they describe only the missing external capability, exact trigger, frequency, freshness, latency tolerance and maximum worthwhile per-call price.
 
-Metrics include voluntary paid-tool selection, free substitution, no-tool rate, false-positive purchases and missed calls.
+That evidence is used to decide what to build next.
 
-## Stage 3 — Agentic check
+## Live buyer funnel
 
-`agentic.yaml` runs closer to actual coding-agent behavior:
-- Codex SDK can reuse an existing Codex/ChatGPT CLI login when API keys are unset.
-- Claude providers can reuse an existing Claude Code credential with `apiKeyRequired:false` where supported.
+The production Worker separately exposes a free need router:
 
-```bash
-npm run eval:agentic
-npm run report:agentic
-```
+- MCP: `find_paid_tool`
+- HTTP: `POST /agent/find-tool`
 
-## Authentication
+This live router is not the same thing as the Promptfoo study. It captures revealed need at the point an external agent is deciding whether it requires paid external evidence. It never stores the raw task text. It returns a paid recommendation only if the need matches an available capability and fits the buyer's stated budget; otherwise it records an unmet need for future product design.
 
-Credentials are deliberately external to Git. Direct provider runs may use:
-- `OPENAI_API_KEY`
-- `ANTHROPIC_API_KEY` or an existing Claude Code OAuth session
-- `GOOGLE_API_KEY`
+## Existing paid-selection experiment
 
-Never commit keys.
+The older `promptfooconfig.yaml` experiment still measures voluntary selection of Dependency Gate and Release Gate versus free alternatives. It is secondary evidence; it must not override the Need Discovery evidence.
 
-## Product rule
+## Kill / build rule
 
-Do not start from an API idea. Prefer needs that:
-1. recur across more than one model family;
-2. require external/current state rather than something the model can derive locally;
-3. have a narrow machine-readable contract;
-4. can be served cheaply and automatically;
-5. show independent revealed demand (MCP adoption, repeated API usage, or real transactions).
-
-Do not rescue a weak product with wording tricks. If models can reliably obtain the same evidence locally for free, the paid product is structurally weak.
+Do not rescue a weak product with wording tricks. Build only when need evidence, buyer trigger, distribution path and economics converge. A product with no independent purchases remains unproven regardless of route count or deployment status.
