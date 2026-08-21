@@ -3,7 +3,7 @@ import { HTTPFacilitatorClient } from "@x402/core/server";
 import { registerExactEvmScheme } from "@x402/evm/exact/server";
 import { bazaarResourceServerExtension, declareDiscoveryExtension } from "@x402/extensions/bazaar";
 import type { MiddlewareHandler } from "hono";
-import { ROUTES } from "./catalog.ts";
+import { ROUTES } from "./catalog-authority.ts";
 import type { Env, Variables } from "./types.ts";
 import { facilitatorUrl } from "./payment-config.ts";
 import { discoveryInputExample } from "./discovery.ts";
