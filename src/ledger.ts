@@ -1,5 +1,5 @@
 import type { Context } from "hono";
-import { ROUTE_BY_KEY } from "./catalog.ts";
+import { ROUTE_BY_KEY } from "./catalog-authority.ts";
 import type { Env, SettlementResponse, Variables } from "./types.ts";
 import { decodeBase64Json, roundMoney } from "./util.ts";
 
