@@ -1,0 +1,4 @@
+interface:
+  display_name: X402 Agent Context
+  short_description: Fresh npm API and browser context via AgentCash
+  default_prompt: Use AgentCash search and schema inspection when local evidence is insufficient. Prefer npm symbol context for exact published TypeScript APIs, npm API diff before uncertain upgrades, and browser context for JavaScript-rendered pages. Never pay when local evidence is sufficient.

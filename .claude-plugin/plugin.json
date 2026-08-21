@@ -1,0 +1,8 @@
+{
+  "name": "x402-agent-context",
+  "version": "0.5.0",
+  "description": "Paid external context for coding agents via AgentCash/x402: npm TypeScript API docs, npm upgrade diff, browser-rendered page context.",
+  "author": {"name": "x402-canary"},
+  "homepage": "https://x402-canary.nicolas-x402-16f380a7.workers.dev",
+  "repository": "https://github.com/herbreteaunicolas1-png/x402-canary"
+}

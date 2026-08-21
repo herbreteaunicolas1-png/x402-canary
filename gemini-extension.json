@@ -1,0 +1,12 @@
+{
+  "name": "x402-agent-context",
+  "version": "0.5.0",
+  "description": "Paid external context for coding agents: npm TypeScript API docs, npm upgrade breaking-change diff, and JavaScript-rendered browser snapshots via AgentCash/x402.",
+  "mcpServers": {
+    "agentcash": {
+      "command": "npx",
+      "args": ["-y", "agentcash@latest"]
+    }
+  },
+  "contextFileName": "GEMINI.md"
+}
