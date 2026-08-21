@@ -11,7 +11,7 @@ const NEED_ROUTES: RouteSpec[] = [
     path: "/v1/agent/npm-symbol-context",
     engine: "npm-symbol-context",
     priceUsd: 0.015,
-    description: "Version-pinned npm context for coding agents. Fetch exact published package metadata and TypeScript declaration snippets for requested API symbols so an agent can verify current signatures instead of relying on model memory.",
+    description: "NPM package docs and TypeScript API signatures for coding agents. Fetch version-specific published npm metadata and exact .d.ts symbol declarations when library documentation, package API, function signature, class, type, import or SDK usage may be stale or missing locally.",
     schema: {
       type: "object",
       properties: {
@@ -32,7 +32,7 @@ const NEED_ROUTES: RouteSpec[] = [
     path: "/v1/agent/npm-api-diff",
     engine: "npm-api-diff",
     priceUsd: 0.025,
-    description: "Compare two published npm versions before an upgrade. Returns added, removed and changed public TypeScript declaration symbols plus engine and peer-dependency changes, giving coding agents current migration evidence.",
+    description: "NPM package upgrade and breaking-change check for coding agents. Compare two published package versions and return added, removed or changed TypeScript API symbols, Node engine changes and peer-dependency changes for dependency update, migration and compatibility decisions.",
     schema: {
       type: "object",
       properties: {
@@ -53,7 +53,7 @@ const NEED_ROUTES: RouteSpec[] = [
     path: "/v1/agent/browser-context",
     engine: "browser-context",
     priceUsd: 0.03,
-    description: "Render a public URL in managed headless Chrome and return current Markdown plus the accessibility tree, page title and status. Use when a coding agent needs the page as a browser actually sees it after JavaScript execution.",
+    description: "Browser snapshot and rendered web page context for coding agents. Open a public HTTPS website in managed headless Chrome after JavaScript execution and return current page Markdown, accessibility tree, title and status for frontend debugging, docs pages, dynamic websites and live web UI inspection.",
     schema: {
       type: "object",
       properties: {
