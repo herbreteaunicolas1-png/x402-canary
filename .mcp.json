@@ -1,5 +1,9 @@
 {
   "mcpServers": {
+    "x402-agent-context": {
+      "type": "http",
+      "url": "https://x402-canary.nicolas-x402-16f380a7.workers.dev/mcp"
+    },
     "agentcash": {
       "command": "npx",
       "args": ["-y", "agentcash@latest"]
