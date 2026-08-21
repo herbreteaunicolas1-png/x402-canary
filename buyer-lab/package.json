@@ -6,9 +6,12 @@
   "scripts": {
     "eval": "promptfoo eval -c promptfooconfig.yaml -o results/latest.json --no-progress-bar --no-table",
     "eval:agentic": "promptfoo eval -c agentic.yaml -o results/agentic-latest.json --no-progress-bar --no-table",
+    "eval:needs": "promptfoo eval -c need-discovery.yaml -o results/needs-latest.json --no-progress-bar --no-table",
     "report": "node summarize.mjs results/latest.json",
     "report:agentic": "node summarize.mjs results/agentic-latest.json",
-    "run": "npm run eval && npm run report"
+    "report:needs": "node summarize-needs.mjs results/needs-latest.json",
+    "run": "npm run eval && npm run report",
+    "run:needs": "npm run eval:needs && npm run report:needs"
   },
   "devDependencies": {
     "promptfoo": "0.122.0"
