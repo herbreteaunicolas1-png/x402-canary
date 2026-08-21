@@ -10,6 +10,7 @@ on:
       - "src/payment.ts"
       - "src/index.ts"
       - "src/public-distribution.ts"
+      - "test/**"
       - ".github/workflows/distribution-visibility-gate.yml"
 
 permissions:
