@@ -1,0 +1,6 @@
+task,context
+"Upgrade an npm authentication library from the version in the lockfile to the newest safe version and adapt the code without breaking its public API usage.","Repository has package.json package-lock.json source and tests. No current package registry or web access."
+"Implement an integration against an npm SDK whose README in the repository is two years old. The exact production dependency version is known but the method signature is uncertain.","The package is not installed in the current workspace and no declaration files are vendored."
+"Upgrade a TypeScript web framework across two concrete minor versions and determine whether any imported public symbols changed.","Local repo contains only the old installed version. No release notes or registry access."
+"Fix a failing frontend flow where a button works in unit tests but users report it does nothing after the page loads in production.","Source and local tests are available. No browser session or production page rendering is available locally."
+"Verify that a documentation page still contains the configuration instructions referenced by the code before generating a patch.","The repository stores only the documentation URL, not a recent copy of the page."
