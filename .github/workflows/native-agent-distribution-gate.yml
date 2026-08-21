@@ -71,6 +71,8 @@ jobs:
           if (!fs.existsSync(`${root}/.mcp.json`)) throw new Error('claude_mcp_missing');
           const mcp=JSON.parse(fs.readFileSync(`${root}/.mcp.json`,'utf8'));
           if (mcp.mcpServers?.agentcash?.command !== 'npx') throw new Error('claude_agentcash_missing');
+          if (mcp.mcpServers?.['x402-agent-context']?.type !== 'http') throw new Error('claude_direct_mcp_type_missing');
+          if (mcp.mcpServers?.['x402-agent-context']?.url !== 'https://x402-canary.nicolas-x402-16f380a7.workers.dev/mcp') throw new Error('claude_direct_mcp_url_missing');
           NODE
           echo "CLAUDE_PUBLIC_MARKETPLACE_GREEN=1"
 
@@ -93,6 +95,9 @@ jobs:
           if (!fs.existsSync(`${root}/skills`)) throw new Error('codex_skills_missing');
           const mcp=JSON.parse(fs.readFileSync(`${root}/.mcp.json`,'utf8'));
           if (mcp.mcpServers?.agentcash?.command !== 'npx') throw new Error('codex_agentcash_missing');
+          const skill=fs.readFileSync(`${root}/skills/x402-agent-context/SKILL.md`,'utf8');
+          if (!skill.includes('/agent/find-tool')) throw new Error('codex_free_router_missing');
+          if (!skill.includes('BUY_RECOMMENDED_TOOL')) throw new Error('codex_purchase_branch_missing');
           NODE
           echo "CODEX_PUBLIC_PLUGIN_GREEN=1"
 
@@ -107,7 +112,10 @@ jobs:
           if (m.name !== 'x402-agent-context') throw new Error('gemini_name');
           if (m.contextFileName !== 'GEMINI.md') throw new Error('gemini_context');
           if (m.mcpServers?.agentcash?.command !== 'npx') throw new Error('gemini_agentcash_missing');
+          if (m.mcpServers?.['x402-agent-context']?.httpUrl !== 'https://x402-canary.nicolas-x402-16f380a7.workers.dev/mcp') throw new Error('gemini_direct_mcp_missing');
           if (!fs.existsSync('GEMINI.md')) throw new Error('gemini_context_file_missing');
+          const context=fs.readFileSync('GEMINI.md','utf8');
+          if (!context.includes('find_paid_tool') || !context.includes('BUY_RECOMMENDED_TOOL')) throw new Error('gemini_free_router_guidance_missing');
           NODE
           echo "GEMINI_PUBLIC_EXTENSION_GREEN=1"
 
@@ -125,6 +133,8 @@ jobs:
             sleep 10
           done
           test "$ok" = "1"
+          curl -fsS --max-time 20 -X POST "$ORIGIN/mcp" -H 'content-type: application/json' --data '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' -o /tmp/mcp.json
+          node -e 'const fs=require("fs");const j=JSON.parse(fs.readFileSync("/tmp/mcp.json","utf8"));if(!(j.result?.tools||[]).some(t=>t.name==="find_paid_tool"))process.exit(1)'
           for path in npm-symbol-context npm-api-diff browser-context; do
             rm -f /tmp/h
             code="$(curl -sS --max-time 30 -D /tmp/h -o /dev/null -w '%{http_code}' -X POST "$ORIGIN/v1/agent/$path" -H 'content-type: application/json' --data '{}')"
@@ -152,9 +162,9 @@ jobs:
             done
             test "$hit" = "1"
           }
-          check_search 'npm docs TypeScript API package symbols' '/v1/agent/npm-symbol-context'
-          check_search 'npm package upgrade breaking changes migration API diff' '/v1/agent/npm-api-diff'
-          check_search 'browser snapshot rendered web page JavaScript accessibility' '/v1/agent/browser-context'
+          check_search 'TypeScript API signatures for coding agents' '/v1/agent/npm-symbol-context'
+          check_search 'NPM package upgrade and breaking-change check' '/v1/agent/npm-api-diff'
+          check_search 'Browser snapshot and rendered web page context' '/v1/agent/browser-context'
           echo "AGENTCASH_NATURAL_LANGUAGE_SEARCH_GREEN=1"
 
       - name: Final native distribution verdict
@@ -164,6 +174,7 @@ jobs:
           echo "CLAUDE_CODE_PUBLIC_INSTALL_SOURCE=GREEN"
           echo "CODEX_PUBLIC_INSTALL_SOURCE=GREEN"
           echo "GEMINI_CLI_PUBLIC_INSTALL_SOURCE=GREEN"
+          echo "DIRECT_FREE_NEED_ROUTER=GREEN"
           echo "AGENTCASH_BUYER_SEARCH=GREEN"
           echo "NO_PAYMENT_SENT=1"
 
@@ -185,11 +196,11 @@ jobs:
 
           - commit: \`${GITHUB_SHA}\`
           - public repo: **${REPO_OUTCOME}**
-          - Claude Code public marketplace bundle: **${CLAUDE_OUTCOME}**
-          - Codex public plugin bundle: **${CODEX_OUTCOME}**
-          - Gemini CLI public extension bundle: **${GEMINI_OUTCOME}**
-          - production 32 routes + x402 challenge: **${RUNTIME_OUTCOME}**
-          - AgentCash discovery + natural-language buyer search: **${AGENTCASH_OUTCOME}**
+          - Claude Code public marketplace bundle + direct merchant MCP: **${CLAUDE_OUTCOME}**
+          - Codex public plugin bundle + free-router skill: **${CODEX_OUTCOME}**
+          - Gemini CLI public extension + direct merchant MCP: **${GEMINI_OUTCOME}**
+          - production 32 routes + direct free router + x402 challenge: **${RUNTIME_OUTCOME}**
+          - AgentCash discovery + buyer search: **${AGENTCASH_OUTCOME}**
           - seller-funded payment: **NONE**
 
           Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}
