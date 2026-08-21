@@ -14,4 +14,6 @@ Distribution requires at least one buyer-native install/consumption path plus fr
 
 Every paid route must continuously measure valid 402 behavior, paid-call success, latency, uptime, schema/example validity, price, trust and last independent payment.
 
-The 0.5.0 experiment is limited to Dependency Gate and Release Gate. Scale only after independent payer and repeat-use evidence.
+The 0.5.0 need-driven commercial pilot promotes exactly three external-context products: NPM API Diff (`$0.025`), NPM Symbol Context (`$0.015`) and Browser Context (`$0.03`). Dependency Gate (`$0.015`) and Release Gate (`$0.04`) remain running experiments and may be retained, repriced or killed according to independent demand. Legacy commodity routes are infrastructure canaries, not commercial-priority products.
+
+No route is commercially GREEN until its public runtime passes the canonical 402/Bazaar gate and independent external payment → settlement → successful fulfillment → attribution is observed. Scale only after independent payer and repeat-use evidence.
