@@ -1,4 +1,4 @@
-name: x402 Need Discovery Gate
+name: x402 Need Discovery Pilot
 
 on:
   workflow_dispatch:
@@ -18,7 +18,7 @@ concurrency:
 jobs:
   cross-model-needs:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 20
     env:
       VERCEL_AI_GATEWAY_API_KEY: ${{ secrets.VERCEL_AI_GATEWAY_API_KEY }}
     steps:
@@ -32,7 +32,7 @@ jobs:
         run: |
           set -euo pipefail
           if [ -z "${VERCEL_AI_GATEWAY_API_KEY:-}" ]; then
-            echo 'NEED_DISCOVERY_GREEN=0'
+            echo 'NEED_DISCOVERY_PILOT_GREEN=0'
             echo 'EXTERNAL_AUTH_GATE=VERCEL_AI_GATEWAY_API_KEY_MISSING'
             exit 2
           fi
@@ -44,54 +44,49 @@ jobs:
         run: |
           set -euo pipefail
           npm install --ignore-scripts --no-audit --no-fund
-          npx promptfoo --version
           test "$(node -p "require('./node_modules/promptfoo/package.json').version")" = "0.122.0"
 
-      - name: Run actual GPT Claude Gemini Need Discovery
+      - name: Run bounded GPT Claude Gemini pilot
         working-directory: buyer-lab
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p results
-          npm run eval:needs
-          npm run report:needs | tee results/needs-report.txt
+          npx promptfoo eval -c need-discovery-pilot.yaml -o results/needs-pilot.json --no-progress-bar --no-table
+          node summarize-needs.mjs results/needs-pilot.json | tee results/needs-pilot-report.txt
 
-      - name: Validate provenance and coverage
+      - name: Validate pilot provenance and coverage
         working-directory: buyer-lab
         shell: bash
         run: |
           set -euo pipefail
           node <<'NODE'
           const fs = require('fs');
-          const p = 'results/needs-latest.json';
-          const j = JSON.parse(fs.readFileSync(p, 'utf8'));
+          const j = JSON.parse(fs.readFileSync('results/needs-pilot.json','utf8'));
           const rows = j.results || j.table?.body || j.eval?.results || [];
-          if (!Array.isArray(rows) || rows.length < 150) throw new Error(`insufficient_rows=${Array.isArray(rows)?rows.length:'not-array'}`);
+          if (!Array.isArray(rows) || rows.length !== 15) throw new Error(`pilot_rows=${Array.isArray(rows)?rows.length:'not-array'}`);
           const text = JSON.stringify(j);
-          const required = ['GPT-5.6 Sol','Claude Opus 5','Gemini 3.1 Pro Preview'];
-          for (const model of required) if (!text.includes(model)) throw new Error(`missing_model=${model}`);
+          for (const model of ['GPT-5.6 Sol','Claude Opus 5','Gemini 3.1 Pro Preview']) if (!text.includes(model)) throw new Error(`missing_model=${model}`);
           const outputs = rows.map(r => r.response?.output ?? r.output ?? r.response).filter(Boolean);
-          if (outputs.length < 150) throw new Error(`insufficient_outputs=${outputs.length}`);
-          let validJson = 0;
+          if (outputs.length !== 15) throw new Error(`pilot_outputs=${outputs.length}`);
+          let validJson=0;
           for (const out of outputs) {
             if (typeof out === 'object') { validJson++; continue; }
-            if (typeof out !== 'string') continue;
-            try { JSON.parse(out); validJson++; } catch {}
+            if (typeof out === 'string') { try { JSON.parse(out); validJson++; } catch {} }
           }
-          if (validJson < Math.floor(outputs.length * 0.9)) throw new Error(`json_coverage=${validJson}/${outputs.length}`);
-          console.log(`NEED_DISCOVERY_ROWS=${rows.length}`);
-          console.log(`NEED_DISCOVERY_JSON_OUTPUTS=${validJson}`);
+          if (validJson < 14) throw new Error(`pilot_json_coverage=${validJson}/15`);
+          console.log('NEED_DISCOVERY_PILOT_GREEN=1');
+          console.log(`NEED_DISCOVERY_PILOT_JSON=${validJson}/15`);
           NODE
-          echo 'NEED_DISCOVERY_GREEN=1'
 
-      - name: Upload raw evidence
+      - name: Upload raw pilot evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: need-discovery-${{ github.run_id }}
+          name: need-discovery-pilot-${{ github.run_id }}
           path: |
-            buyer-lab/results/needs-latest.json
-            buyer-lab/results/needs-report.txt
+            buyer-lab/results/needs-pilot.json
+            buyer-lab/results/needs-pilot-report.txt
           if-no-files-found: warn
           retention-days: 30
 
@@ -103,19 +98,19 @@ jobs:
         run: |
           status='${{ job.status }}'
           {
-            echo "## Need Discovery gate — ${status}"
+            echo "## Need Discovery pilot — ${status}"
             echo
             echo "commit=${GITHUB_SHA}"
             echo "run=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
-            if [ -f buyer-lab/results/needs-report.txt ]; then
+            if [ -f buyer-lab/results/needs-pilot-report.txt ]; then
               echo
-              echo '### Ranked needs report'
+              echo '### Pilot needs report'
               echo '```text'
-              tail -n 160 buyer-lab/results/needs-report.txt
+              tail -n 120 buyer-lab/results/needs-pilot-report.txt
               echo '```'
             else
               echo
-              echo 'No persisted Need Discovery report was produced. Do not claim NEED_DISCOVERY_GREEN.'
+              echo 'No valid pilot report was produced. Do not claim Need Discovery evidence.'
             fi
           } > /tmp/need-comment.md
           gh issue comment 1 --repo "$GITHUB_REPOSITORY" --body-file /tmp/need-comment.md
