@@ -1,0 +1,13 @@
+{
+  "name": "x402-agent-context",
+  "owner": {"name": "x402-canary"},
+  "description": "AgentCash-powered paid context for coding agents: npm TypeScript API docs, npm upgrade diff, browser-rendered page context.",
+  "plugins": [
+    {
+      "name": "x402-agent-context",
+      "source": "./distribution/claude-plugin",
+      "description": "Search and buy fresh npm API context, npm migration diffs and managed browser snapshots through AgentCash/x402.",
+      "version": "0.5.0"
+    }
+  ]
+}
