@@ -1,1 +1,8 @@
-{"name":"x402-agent-preflight","version":"0.5.0","description":"Fresh external npm/browser context plus deterministic coding-agent preflight through x402/AgentCash. Pay only when local evidence is insufficient.","author":{"name":"x402-canary"},"homepage":"https://x402-canary.nicolas-x402-16f380a7.workers.dev","repository":"https://github.com/herbreteaunicolas1-png/x402-canary"}
+{
+  "name": "x402-agent-context",
+  "version": "0.5.0",
+  "description": "Fresh external npm/browser context plus deterministic coding-agent preflight through AgentCash/x402. Pay only when local evidence is insufficient.",
+  "author": {"name": "x402-canary"},
+  "homepage": "https://x402-canary.nicolas-x402-16f380a7.workers.dev",
+  "repository": "https://github.com/herbreteaunicolas1-png/x402-canary"
+}

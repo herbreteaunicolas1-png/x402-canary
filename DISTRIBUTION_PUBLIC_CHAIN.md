@@ -10,16 +10,23 @@ The permissionless buyer chain is:
 
 `Claude Code / Codex / Gemini CLI / other MCP host -> AgentCash MCP/skill -> AgentCash search/check/fetch -> x402 discovery -> x402 payment -> x402-canary -> D1 settlement attribution`
 
-AgentCash is the buyer bridge because it exposes a dynamic catalog and handles the x402 payment/retry beneath the model. No per-merchant account or API key is required.
+AgentCash is the buyer bridge because it exposes a dynamic catalog and handles x402 payment/retry beneath the model. No per-merchant account or merchant API key is required.
 
-## Public install links
+## Public source and direct installs
+
+Repository: `https://github.com/herbreteaunicolas1-png/x402-canary` (public).
 
 - Merchant skill: `https://x402-canary.nicolas-x402-16f380a7.workers.dev/skill.md`
 - Merchant distribution manifest: `https://x402-canary.nicolas-x402-16f380a7.workers.dev/distribution`
 - AgentCash skill: `https://agentcash.dev/skill.md`
-- Claude Code: `npx agentcash install --client claude-code`
-- Codex: `npx agentcash install --client codex`
-- Generic MCP / Gemini-compatible setup: `npx agentcash install` or prompt the agent with `Set up https://agentcash.dev/skill.md`.
+- Claude Code AgentCash bridge: `npx agentcash install --client claude-code`
+- Claude Code direct marketplace: `/plugin marketplace add herbreteaunicolas1-png/x402-canary`, then `/plugin install x402-agent-context@x402-agent-context`
+- Codex AgentCash bridge: `npx agentcash install --client codex`
+- Codex direct skill: ask `$skill-installer` to install `https://github.com/herbreteaunicolas1-png/x402-canary/tree/main/.agents/skills/x402-agent-context`
+- Gemini CLI direct extension: `gemini extensions install https://github.com/herbreteaunicolas1-png/x402-canary`
+- Generic MCP: `npx agentcash install` or prompt the agent with `Set up https://agentcash.dev/skill.md`.
+
+The public repo contains root-level Claude and Gemini manifests plus a Codex plugin/skill bundle. Direct installation is available without waiting for optional third-party gallery review.
 
 ## Search intents deliberately indexed
 
@@ -27,10 +34,6 @@ AgentCash is the buyer bridge because it exposes a dynamic catalog and handles t
 - `npm package upgrade breaking changes migration API diff`
 - `browser snapshot rendered web page JavaScript accessibility`
 
-## Native gallery limitation
-
-The merchant source repository remains private. Files stored only in that private repository are not claimed as publicly gallery-listed extensions. Public distribution is therefore anchored on the Worker URLs plus AgentCash's dynamic MCP catalog. A separate public GitHub extension repository would be required for automatic Gemini CLI Gallery crawling; that is an optional extra distribution surface, not part of the payment path.
-
 ## Commercial truth gate
 
-Do not wait for transactions before checking visibility. The automated distribution gate must prove the routes are present in production, protected by x402, discoverable by AgentCash, registered, and retrievable by buyer search queries. No seller-funded paid self-test is permitted.
+Do not wait for transactions before checking visibility. `.github/workflows/distribution-visibility-gate.yml` must prove the routes are present in production, protected by x402, discoverable by AgentCash, and retrievable from buyer search queries. Registry refresh is attempted only when buyer search does not already find the route. No seller-funded paid self-test is permitted.

@@ -1,0 +1,24 @@
+{
+  "name": "x402-agent-context",
+  "version": "0.5.0",
+  "description": "Fresh npm TypeScript API context, npm upgrade diffs and JavaScript-rendered browser snapshots through AgentCash/x402.",
+  "author": {
+    "name": "x402-canary",
+    "url": "https://github.com/herbreteaunicolas1-png/x402-canary"
+  },
+  "homepage": "https://x402-canary.nicolas-x402-16f380a7.workers.dev",
+  "repository": "https://github.com/herbreteaunicolas1-png/x402-canary",
+  "keywords": ["x402", "agentcash", "npm", "typescript", "breaking-changes", "browser", "coding-agent"],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "x402 Agent Context",
+    "shortDescription": "Buy fresh npm and browser context only when local evidence is insufficient",
+    "longDescription": "Search and purchase exact npm TypeScript API signatures, npm version migration diffs and managed-Chrome page snapshots through AgentCash and x402.",
+    "developerName": "x402-canary",
+    "category": "Developer Tools",
+    "capabilities": ["Interactive", "Read"],
+    "websiteURL": "https://x402-canary.nicolas-x402-16f380a7.workers.dev",
+    "defaultPrompt": ["Use fresh external npm or browser context only when local evidence cannot answer the coding task reliably."]
+  }
+}
