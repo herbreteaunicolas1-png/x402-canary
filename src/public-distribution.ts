@@ -103,6 +103,7 @@ export function sitemapXml(baseUrl: string): string {
   return `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${paths.map((p) => `<url><loc>${base}${p}</loc></url>`).join("")}</urlset>`;
 }
 
+const HTML_ESCAPES: Readonly<Record<string, string>> = Object.freeze({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;" });
 function escapeHtml(value: string): string {
-  return value.replace(/[&<>\"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;" }[ch] ?? ch));
+  return value.replace(/[&<>\"]/g, (ch) => HTML_ESCAPES[ch] ?? ch);
 }
