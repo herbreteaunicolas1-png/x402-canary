@@ -1,0 +1,117 @@
+name: x402 Need Discovery Gate
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: x402-need-discovery
+  cancel-in-progress: true
+
+jobs:
+  cross-model-needs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      VERCEL_AI_GATEWAY_API_KEY: ${{ secrets.VERCEL_AI_GATEWAY_API_KEY }}
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 1
+
+      - name: Verify external auth gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${VERCEL_AI_GATEWAY_API_KEY:-}" ]; then
+            echo 'NEED_DISCOVERY_GREEN=0'
+            echo 'EXTERNAL_AUTH_GATE=VERCEL_AI_GATEWAY_API_KEY_MISSING'
+            exit 2
+          fi
+          echo 'AI_GATEWAY_AUTH_PRESENT=1'
+
+      - name: Install pinned Promptfoo
+        working-directory: buyer-lab
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --ignore-scripts --no-audit --no-fund
+          npx promptfoo --version
+          test "$(node -p "require('./node_modules/promptfoo/package.json').version")" = "0.122.0"
+
+      - name: Run actual GPT Claude Gemini Need Discovery
+        working-directory: buyer-lab
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p results
+          npm run eval:needs
+          npm run report:needs | tee results/needs-report.txt
+
+      - name: Validate provenance and coverage
+        working-directory: buyer-lab
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('fs');
+          const p = 'results/needs-latest.json';
+          const j = JSON.parse(fs.readFileSync(p, 'utf8'));
+          const rows = j.results || j.table?.body || j.eval?.results || [];
+          if (!Array.isArray(rows) || rows.length < 150) throw new Error(`insufficient_rows=${Array.isArray(rows)?rows.length:'not-array'}`);
+          const text = JSON.stringify(j);
+          const required = ['GPT-5.6 Sol','Claude Opus 5','Gemini 3.1 Pro Preview'];
+          for (const model of required) if (!text.includes(model)) throw new Error(`missing_model=${model}`);
+          const outputs = rows.map(r => r.response?.output ?? r.output ?? r.response).filter(Boolean);
+          if (outputs.length < 150) throw new Error(`insufficient_outputs=${outputs.length}`);
+          let validJson = 0;
+          for (const out of outputs) {
+            if (typeof out === 'object') { validJson++; continue; }
+            if (typeof out !== 'string') continue;
+            try { JSON.parse(out); validJson++; } catch {}
+          }
+          if (validJson < Math.floor(outputs.length * 0.9)) throw new Error(`json_coverage=${validJson}/${outputs.length}`);
+          console.log(`NEED_DISCOVERY_ROWS=${rows.length}`);
+          console.log(`NEED_DISCOVERY_JSON_OUTPUTS=${validJson}`);
+          NODE
+          echo 'NEED_DISCOVERY_GREEN=1'
+
+      - name: Upload raw evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: need-discovery-${{ github.run_id }}
+          path: |
+            buyer-lab/results/needs-latest.json
+            buyer-lab/results/needs-report.txt
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Publish verdict
+        if: always()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          status='${{ job.status }}'
+          {
+            echo "## Need Discovery gate — ${status}"
+            echo
+            echo "commit=${GITHUB_SHA}"
+            echo "run=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+            if [ -f buyer-lab/results/needs-report.txt ]; then
+              echo
+              echo '### Ranked needs report'
+              echo '```text'
+              tail -n 160 buyer-lab/results/needs-report.txt
+              echo '```'
+            else
+              echo
+              echo 'No persisted Need Discovery report was produced. Do not claim NEED_DISCOVERY_GREEN.'
+            fi
+          } > /tmp/need-comment.md
+          gh issue comment 1 --repo "$GITHUB_REPOSITORY" --body-file /tmp/need-comment.md
