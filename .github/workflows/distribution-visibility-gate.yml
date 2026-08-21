@@ -17,6 +17,10 @@ permissions:
   contents: read
   issues: write
 
+concurrency:
+  group: x402-distribution-visibility-main
+  cancel-in-progress: true
+
 jobs:
   buyer-visibility:
     runs-on: ubuntu-latest
@@ -134,17 +138,26 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          npx -y @agentcash/discovery@latest discover "$ORIGIN" | tee /tmp/agentcash-discover.txt
-          grep -q 'npm-symbol-context' /tmp/agentcash-discover.txt
-          grep -q 'npm-api-diff' /tmp/agentcash-discover.txt
-          grep -q 'browser-context' /tmp/agentcash-discover.txt
+          npx -y @agentcash/discovery@latest discover "$ORIGIN" --json | tee /tmp/agentcash-discover.json
+          grep -q 'npm-symbol-context' /tmp/agentcash-discover.json
+          grep -q 'npm-api-diff' /tmp/agentcash-discover.json
+          grep -q 'browser-context' /tmp/agentcash-discover.json
+          for path in npm-symbol-context npm-api-diff browser-context; do
+            npx -y @agentcash/discovery@latest check "$ORIGIN/v1/agent/$path" --json | tee "/tmp/check-$path.json"
+            grep -q '402' "/tmp/check-$path.json"
+          done
           echo 'AGENTCASH_DISCOVERY_GREEN=1' >> /tmp/distribution-report.txt
 
-      - name: Register origin in AgentCash index
+      - name: Refresh x402scan registration through AgentCash SIWX
         shell: bash
         run: |
           set -euo pipefail
-          npx -y agentcash@latest register "$ORIGIN" --yes --format json | tee /tmp/agentcash-register.json
+          body="$(printf '{\"origin\":\"%s\"}' "$ORIGIN")"
+          npx -y agentcash@latest fetch 'https://x402scan.com/api/x402/registry/register-origin' -m POST -b "$body" | tee /tmp/agentcash-register.txt
+          if grep -Eqi 'error|failed[^:]*:[[:space:]]*[1-9]' /tmp/agentcash-register.txt; then
+            echo 'AgentCash/x402scan registration returned an error' >&2
+            exit 1
+          fi
           echo 'AGENTCASH_REGISTER_GREEN=1' >> /tmp/distribution-report.txt
 
       - name: Verify buyer search can find each new capability
@@ -156,9 +169,9 @@ jobs:
             expected="$2"
             outfile="$3"
             visible=0
-            for attempt in $(seq 1 16); do
+            for attempt in $(seq 1 12); do
               echo "search attempt=$attempt query=$query expected=$expected"
-              output="$(npx -y agentcash@latest search "$query" --format json 2>&1 || true)"
+              output="$(npx -y agentcash@latest search "$query" 2>&1 || true)"
               printf '%s\n' "$output" | tee "$outfile"
               if printf '%s' "$output" | grep -Fq "$expected"; then
                 visible=1
@@ -194,7 +207,7 @@ jobs:
               echo
               echo '```'
             fi
-            for f in /tmp/agentcash-discover.txt /tmp/agentcash-register.json /tmp/search-symbol.txt /tmp/search-diff.txt /tmp/search-browser.txt; do
+            for f in /tmp/agentcash-discover.json /tmp/agentcash-register.txt /tmp/search-symbol.txt /tmp/search-diff.txt /tmp/search-browser.txt; do
               if [ -f "$f" ]; then
                 echo
                 echo "### $(basename "$f") — tail"
