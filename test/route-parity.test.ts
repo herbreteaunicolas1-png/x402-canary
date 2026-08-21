@@ -15,7 +15,7 @@ test("legacy 29-route portfolio is preserved and effective authority adds exactl
   const index = readFileSync(new URL("../src/index.ts", import.meta.url), "utf8");
   assert.match(index, /for\(const route of ROUTES\)/);
   assert.match(index, /PAID_HANDLERS\[route\.path\]/);
-  const handlerPaths = [...index.matchAll(/"(\/v1\/[^"\n]+)":(?:\(b,env\)|b)=>/g)].map(m => m[1]).sort();
+  const handlerPaths = [...index.matchAll(/"(\/v1\/[^"\n]+)":(?:async\(b,env\)|\(b,env\)|b)=>/g)].map(m => m[1]).sort();
   assert.deepEqual(handlerPaths, ROUTES.map(r => r.path).sort());
 
   const doc:any = buildOpenApi("https://api.example.com");
