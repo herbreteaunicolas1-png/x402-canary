@@ -9,7 +9,8 @@
     "typecheck": "tsc --noEmit",
     "test": "node --experimental-strip-types --test test/*.test.ts",
     "check": "npm run gate:offline && npm run typecheck",
-    "gate:offline": "node scripts/offline-gate.mjs"
+    "gate:offline": "node scripts/offline-gate.mjs",
+    "gate:visibility": "node scripts/agent-visibility-gate.mjs"
   },
   "dependencies": {
     "@x402/core": "2.22.0",
