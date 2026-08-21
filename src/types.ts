@@ -1,3 +1,7 @@
+export interface BrowserRunBinding {
+  quickAction(action: string, options: Record<string, unknown>): Promise<Response>;
+}
+
 export interface Env {
   ENVIRONMENT: "testnet" | "production";
   NETWORK: "eip155:84532" | "eip155:8453";
@@ -7,7 +11,7 @@ export interface Env {
   MERCHANT_CONTACT_EMAIL?: string;
   OFFRAMP_VERIFIED?: "true" | "false";
   UNOFFRAMPED_USDC_CAP?: string;
-  BROWSER?: BrowserRun;
+  BROWSER?: BrowserRunBinding;
   DB?: D1Database;
 }
 
