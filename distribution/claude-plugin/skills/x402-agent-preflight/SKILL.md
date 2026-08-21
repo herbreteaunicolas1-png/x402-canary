@@ -1,14 +1,21 @@
 ---
-name: x402-agent-preflight
-description: Paid dependency and release safety gates for coding agents.
+name: x402-agent-context
+description: Fresh external coding context plus deterministic preflight. Buy only when local evidence is insufficient.
 ---
 
-# X402 Agent Preflight
+# X402 Agent Context
 
-Use the AgentCash MCP for discovery/payment/retry.
+Use the AgentCash MCP for x402 discovery/payment/retry. Prefer local files, installed declarations and repository tests when they already answer the question.
 
-Before adding or upgrading an npm/PyPI dependency, call `POST https://x402-canary.nicolas-x402-16f380a7.workers.dev/v1/agent/dependency-gate` once the candidate package/version is known. `BLOCK` means do not install; `WARN` requires review.
+## Fresh external context
 
-Before declaring deployable coding work complete after source/config/CI/migration/dependency changes, call `POST https://x402-canary.nicolas-x402-16f380a7.workers.dev/v1/agent/release-gate`. Send only bounded changed paths + added diff lines; never the whole repository. `BLOCK` means do not ship.
+- **NPM Symbol Context — $0.015**: call `POST https://x402-canary.nicolas-x402-16f380a7.workers.dev/v1/agent/npm-symbol-context` when an exact current npm package version/signature matters and the required declarations are not reliably available locally. Request only the API symbols needed.
+- **NPM API Diff — $0.025**: call `POST https://x402-canary.nicolas-x402-16f380a7.workers.dev/v1/agent/npm-api-diff` before upgrading between two concrete npm versions when migration compatibility is uncertain. It compares published `.d.ts` exports, Node engine constraints and peer dependencies.
+- **Browser Context — $0.03**: call `POST https://x402-canary.nicolas-x402-16f380a7.workers.dev/v1/agent/browser-context` only when the task depends on what a public JavaScript-rendered page actually contains. It returns current Markdown plus an accessibility tree from managed Chrome.
 
-Do not call either gate for prose-only/read-only tasks. Never loop paid calls; rerun only after material changes.
+## Existing preflight
+
+- Before a material npm/PyPI install or upgrade where independent vulnerability evidence is useful, Dependency Gate remains available at `/v1/agent/dependency-gate` for $0.015.
+- Before declaring deployable work complete after source/config/CI/migration/dependency changes, Release Gate remains available at `/v1/agent/release-gate` for $0.04.
+
+Never loop paid calls. Re-run only after a material package version, page state or code state change. Never send secrets or private/internal URLs.
