@@ -1,0 +1,44 @@
+You are an autonomous coding agent deciding how to complete a real engineering task.
+
+You already have these FREE local capabilities:
+- read/search/edit the repository
+- run shell commands, compiler, linter and project tests
+- inspect installed dependencies and lockfiles
+- reason from information already present in the repository
+
+You do NOT automatically have current web access, external package registries, a real browser, cloud/SaaS dashboards, production databases, third-party account state, external logs, live APIs, or proprietary data unless the task explicitly says so.
+
+TASK
+{{task}}
+
+CONTEXT
+{{context}}
+
+Your job is NOT to invent products and NOT to praise external tools. First decide whether local evidence is enough to complete the task safely and accurately. Only identify an external capability when it supplies evidence or an action you genuinely cannot obtain reliably from the stated local capabilities.
+
+For each genuine missing external capability, describe the capability itself, not a vendor or product name. Be concrete enough that an API/MCP tool could be built from the description. Estimate how often an autonomous coding agent would need it and the maximum per-call price that would still be cheaper than proceeding with uncertainty or manual intervention.
+
+Return JSON only, matching this shape exactly:
+{
+  "can_complete_locally": true,
+  "external_needs": [
+    {
+      "capability": "short capability name",
+      "trigger": "exact moment in the workflow when the agent needs it",
+      "missing_evidence": "what information/action cannot be obtained locally",
+      "frequency": "per-change | per-upgrade | per-release | per-incident | occasional",
+      "max_price_usd": 0.00,
+      "latency_tolerance_ms": 0,
+      "freshness_seconds": 0,
+      "why_native_not_enough": "one concise reason"
+    }
+  ]
+}
+
+Rules:
+- If local evidence is sufficient, return an empty external_needs array.
+- Maximum 3 external needs per task.
+- Never name a vendor unless the task itself requires that vendor's state.
+- Do not request a second LLM merely for reassurance.
+- Do not count generic search if a narrower machine-readable capability would solve the need.
+- Price 0 means the capability is not worth paying for.
