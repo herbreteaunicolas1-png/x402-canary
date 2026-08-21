@@ -1,18 +1,27 @@
 # X402 Agent Context for Gemini CLI
 
-Use the AgentCash MCP server for paid external capabilities. AgentCash handles discovery, schema inspection, x402 payment, retry, and wallet signing.
+This extension loads two MCP servers: the merchant's free need router and AgentCash for x402 payment/execution.
 
-When local repository evidence is missing or stale, search AgentCash for the capability rather than guessing from model memory.
+Prefer local repository evidence when it is sufficient. Do not buy merely because a paid tool is available.
 
-Primary commercial capabilities:
+## Buyer workflow — free routing first
 
-- NPM Symbol Context — search terms: `npm docs`, `TypeScript API`, `package documentation`, `npm package signature`. Exact published npm metadata and TypeScript declaration snippets. $0.015/call. Canonical endpoint: `https://x402-canary.nicolas-x402-16f380a7.workers.dev/v1/agent/npm-symbol-context`.
-- NPM API Diff — search terms: `npm upgrade`, `breaking changes`, `migration diff`, `package version diff`. Compares public declaration symbols, Node engines and peer dependencies between exact published versions. $0.025/call. Canonical endpoint: `https://x402-canary.nicolas-x402-16f380a7.workers.dev/v1/agent/npm-api-diff`.
-- Browser Context — search terms: `browser snapshot`, `rendered web page`, `JavaScript page`, `accessibility tree`. Managed-Chrome snapshot of a public HTTPS page after JavaScript execution. $0.03/call. Canonical endpoint: `https://x402-canary.nicolas-x402-16f380a7.workers.dev/v1/agent/browser-context`.
+1. First call the `x402-agent-context` MCP tool `find_paid_tool` with the missing external capability, whether local evidence is sufficient, and the maximum useful price.
+2. If the result is `NO_PURCHASE_LOCAL_EVIDENCE_SUFFICIENT`, stop and use local evidence.
+3. If the result is `UNMET_NEED` or `UNMET_BUDGET`, do not invent a purchase.
+4. If the result is `BUY_RECOMMENDED_TOOL`, use AgentCash to inspect the recommended canonical endpoint schema and price, then execute exactly one x402 call.
+5. Never repeat a paid call unless the package version, page state, code state or other material input changed.
 
-Decision policy:
-- Prefer local source, installed types, existing tests and ordinary HTTP when they answer the question reliably.
-- Buy one call when fresh external state materially changes the answer.
-- Before the first paid call, use AgentCash `check_endpoint_schema` or `discover_api_endpoints`.
-- Never loop paid calls without a material state/input change.
-- Never send secrets, private/local URLs or whole repositories.
+## Primary paid capabilities
+
+- NPM Symbol Context — $0.015 — exact published npm metadata and TypeScript declaration snippets. Need terms: `npm docs`, `TypeScript API`, `package documentation`, `npm package signature`.
+- NPM API Diff — $0.025 — published API/engine/peer-dependency changes between exact versions. Need terms: `npm upgrade`, `breaking changes`, `migration diff`, `package version diff`.
+- Browser Context — $0.03 — managed-Chrome Markdown + accessibility snapshot after JavaScript execution. Need terms: `browser snapshot`, `rendered web page`, `JavaScript page`, `accessibility tree`.
+- Dependency Gate — $0.015 — independent dependency vulnerability/risk evidence.
+- Release Gate — $0.04 — bounded deterministic release preflight.
+
+Free need router: `https://x402-canary.nicolas-x402-16f380a7.workers.dev/agent/find-tool`
+Merchant MCP: `https://x402-canary.nicolas-x402-16f380a7.workers.dev/mcp`
+AgentCash payment bridge: `https://agentcash.dev/skill.md`
+
+Never send secrets, private/local URLs, authenticated page content or full repositories.
