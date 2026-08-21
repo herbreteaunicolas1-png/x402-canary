@@ -19,14 +19,29 @@ permissions:
 jobs:
   buyer-visibility:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 18
     env:
       ORIGIN: https://x402-canary.nicolas-x402-16f380a7.workers.dev
     steps:
       - name: Initialize report
         shell: bash
         run: |
-          printf '%s\n' "commit=${GITHUB_SHA}" "origin=${ORIGIN}" > /tmp/distribution-report.txt
+          printf '%s\n' "commit=${GITHUB_SHA}" "origin=${ORIGIN}" "run=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" > /tmp/distribution-report.txt
+
+      - name: Verify source gate independently of Cloudflare
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/source
+          git -c http.extraheader="AUTHORIZATION: bearer ${GH_TOKEN}" clone --quiet --no-checkout "https://github.com/${GITHUB_REPOSITORY}.git" /tmp/source
+          cd /tmp/source
+          git fetch --quiet --depth=1 origin "${GITHUB_SHA}"
+          git checkout --quiet FETCH_HEAD
+          npm install --ignore-scripts --no-audit --no-fund
+          npm run check
+          echo 'SOURCE_GATE_GREEN=1' >> /tmp/distribution-report.txt
 
       - name: Wait for active 32-route Cloudflare runtime
         shell: bash
@@ -40,24 +55,38 @@ jobs:
             if [ "$count" = "32" ]; then break; fi
             sleep 10
           done
+          echo "runtime_routes=${count}" >> /tmp/distribution-report.txt
           test "$count" = "32"
           echo 'RUNTIME_32_GREEN=1' >> /tmp/distribution-report.txt
 
-      - name: Verify public distribution surface
+      - name: Wait for public distribution surface from this release line
         shell: bash
         run: |
           set -euo pipefail
-          curl -fsS --max-time 20 "$ORIGIN/distribution" -o /tmp/distribution.json
+          ok=0
+          last_code=000
+          for attempt in $(seq 1 30); do
+            last_code="$(curl -sS --max-time 20 -o /tmp/distribution.json -w '%{http_code}' "$ORIGIN/distribution" || true)"
+            echo "distribution attempt=$attempt status=$last_code"
+            if [ "$last_code" = "200" ]; then
+              if node -e 'const fs=require("fs");try{const d=JSON.parse(fs.readFileSync("/tmp/distribution.json","utf8"));process.exit(d.status==="public"&&d.paid_route_count===32&&d.buyer_bridge?.provider==="AgentCash"?0:1)}catch{process.exit(1)}'; then
+                ok=1
+                break
+              fi
+            fi
+            sleep 10
+          done
+          echo "distribution_http=${last_code}" >> /tmp/distribution-report.txt
+          test "$ok" = "1"
           curl -fsS --max-time 20 "$ORIGIN/skill.md" -o /tmp/skill.md
           node <<'NODE'
           const fs = require('fs');
           const d = JSON.parse(fs.readFileSync('/tmp/distribution.json','utf8'));
-          if (d.status !== 'public' || d.paid_route_count !== 32) throw new Error('distribution_manifest_invalid');
-          if (d.buyer_bridge?.provider !== 'AgentCash') throw new Error('buyer_bridge_missing');
           const ids = (d.capabilities || []).map(x => x.id);
           for (const id of ['npm-symbol-context','npm-api-diff','browser-context']) if (!ids.includes(id)) throw new Error(`distribution_missing=${id}`);
           const skill = fs.readFileSync('/tmp/skill.md','utf8');
           if (!skill.includes('https://agentcash.dev/skill.md')) throw new Error('agentcash_skill_bridge_missing');
+          if (!skill.includes('npm docs') || !skill.includes('breaking changes') || !skill.includes('browser snapshot')) throw new Error('buyer_intent_keywords_missing');
           console.log('PUBLIC_DISTRIBUTION_GREEN=1');
           NODE
           echo 'PUBLIC_DISTRIBUTION_GREEN=1' >> /tmp/distribution-report.txt
@@ -80,6 +109,8 @@ jobs:
           ];
           if (paths.length !== 32) throw new Error(`openapi_route_count=${paths.length}`);
           for (const p of required) if (!d.paths?.[p]?.post) throw new Error(`missing_openapi_route=${p}`);
+          const text = JSON.stringify(d.info || {});
+          for (const keyword of ['npm docs','breaking changes','browser snapshot']) if (!text.toLowerCase().includes(keyword)) throw new Error(`openapi_keyword_missing=${keyword}`);
           console.log('OPENAPI_32_GREEN=1');
           NODE
           echo 'OPENAPI_32_GREEN=1' >> /tmp/distribution-report.txt
@@ -156,6 +187,14 @@ jobs:
             echo '```text'
             cat /tmp/distribution-report.txt 2>/dev/null || true
             echo '```'
+            if [ -f /tmp/distribution.json ]; then
+              echo
+              echo '### distribution.json — tail'
+              echo '```text'
+              tail -c 3000 /tmp/distribution.json
+              echo
+              echo '```'
+            fi
             for f in /tmp/agentcash-discover.txt /tmp/agentcash-register.json /tmp/search-symbol.txt /tmp/search-diff.txt /tmp/search-browser.txt; do
               if [ -f "$f" ]; then
                 echo
