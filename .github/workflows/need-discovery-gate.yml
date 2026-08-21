@@ -1,116 +1,52 @@
-name: x402 Need Discovery Pilot
+name: x402 Need Discovery Harness Gate
 
 on:
   workflow_dispatch:
   push:
     branches: [main]
     paths:
-      - buyer-lab/NEED_DISCOVERY_TRIGGER
+      - "buyer-lab/**"
+      - ".github/workflows/need-discovery-gate.yml"
 
 permissions:
   contents: read
-  issues: write
 
 concurrency:
-  group: x402-need-discovery
+  group: x402-need-discovery-harness
   cancel-in-progress: true
 
 jobs:
-  cross-model-needs:
+  verify-no-paid-gateway-harness:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
-    env:
-      VERCEL_AI_GATEWAY_API_KEY: ${{ secrets.VERCEL_AI_GATEWAY_API_KEY }}
+    timeout-minutes: 8
     steps:
       - name: Checkout exact source
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           fetch-depth: 1
 
-      - name: Verify external auth gate
+      - name: Verify local CLI harness only
         shell: bash
         run: |
           set -euo pipefail
-          if [ -z "${VERCEL_AI_GATEWAY_API_KEY:-}" ]; then
-            echo 'NEED_DISCOVERY_PILOT_GREEN=0'
-            echo 'EXTERNAL_AUTH_GATE=VERCEL_AI_GATEWAY_API_KEY_MISSING'
-            exit 2
+          test -f buyer-lab/cli-provider.mjs
+          test -f buyer-lab/run-local-need-discovery.ps1
+          test -f buyer-lab/need-discovery-pilot.yaml
+          node --check buyer-lab/cli-provider.mjs
+          if grep -R -n -E 'VERCEL_AI_GATEWAY_API_KEY|id:[[:space:]]*vercel:' buyer-lab/need-discovery-pilot.yaml buyer-lab/cli-provider.mjs buyer-lab/run-local-need-discovery.ps1; then
+            echo 'PAID_GATEWAY_REFERENCE_RED=1'
+            exit 1
           fi
-          echo 'AI_GATEWAY_AUTH_PRESENT=1'
+          grep -Fq 'exec: node cli-provider.mjs codex' buyer-lab/need-discovery-pilot.yaml
+          grep -Fq 'exec: node cli-provider.mjs claude' buyer-lab/need-discovery-pilot.yaml
+          grep -Fq 'exec: node cli-provider.mjs gemini' buyer-lab/need-discovery-pilot.yaml
+          grep -Fq 'maxConcurrency: 1' buyer-lab/need-discovery-pilot.yaml
+          echo 'NEED_DISCOVERY_HARNESS_GREEN=1'
+          echo 'INFERENCE_RUN=LOCAL_ONLY'
+          echo 'PAID_AI_GATEWAY=0'
 
-      - name: Install pinned Promptfoo
-        working-directory: buyer-lab
+      - name: Clarify evidence boundary
         shell: bash
         run: |
-          set -euo pipefail
-          npm install --ignore-scripts --no-audit --no-fund
-          test "$(node -p "require('./node_modules/promptfoo/package.json').version")" = "0.122.0"
-
-      - name: Run bounded GPT Claude Gemini pilot
-        working-directory: buyer-lab
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p results
-          npx promptfoo eval -c need-discovery-pilot.yaml -o results/needs-pilot.json --no-progress-bar --no-table
-          node summarize-needs.mjs results/needs-pilot.json | tee results/needs-pilot-report.txt
-
-      - name: Validate pilot provenance and coverage
-        working-directory: buyer-lab
-        shell: bash
-        run: |
-          set -euo pipefail
-          node <<'NODE'
-          const fs = require('fs');
-          const j = JSON.parse(fs.readFileSync('results/needs-pilot.json','utf8'));
-          const rows = j.results || j.table?.body || j.eval?.results || [];
-          if (!Array.isArray(rows) || rows.length !== 15) throw new Error(`pilot_rows=${Array.isArray(rows)?rows.length:'not-array'}`);
-          const text = JSON.stringify(j);
-          for (const model of ['GPT-5.6 Sol','Claude Opus 5','Gemini 3.1 Pro Preview']) if (!text.includes(model)) throw new Error(`missing_model=${model}`);
-          const outputs = rows.map(r => r.response?.output ?? r.output ?? r.response).filter(Boolean);
-          if (outputs.length !== 15) throw new Error(`pilot_outputs=${outputs.length}`);
-          let validJson=0;
-          for (const out of outputs) {
-            if (typeof out === 'object') { validJson++; continue; }
-            if (typeof out === 'string') { try { JSON.parse(out); validJson++; } catch {} }
-          }
-          if (validJson < 14) throw new Error(`pilot_json_coverage=${validJson}/15`);
-          console.log('NEED_DISCOVERY_PILOT_GREEN=1');
-          console.log(`NEED_DISCOVERY_PILOT_JSON=${validJson}/15`);
-          NODE
-
-      - name: Upload raw pilot evidence
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: need-discovery-pilot-${{ github.run_id }}
-          path: |
-            buyer-lab/results/needs-pilot.json
-            buyer-lab/results/needs-pilot-report.txt
-          if-no-files-found: warn
-          retention-days: 30
-
-      - name: Publish verdict
-        if: always()
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          status='${{ job.status }}'
-          {
-            echo "## Need Discovery pilot — ${status}"
-            echo
-            echo "commit=${GITHUB_SHA}"
-            echo "run=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
-            if [ -f buyer-lab/results/needs-pilot-report.txt ]; then
-              echo
-              echo '### Pilot needs report'
-              echo '```text'
-              tail -n 120 buyer-lab/results/needs-pilot-report.txt
-              echo '```'
-            else
-              echo
-              echo 'No valid pilot report was produced. Do not claim Need Discovery evidence.'
-            fi
-          } > /tmp/need-comment.md
-          gh issue comment 1 --repo "$GITHUB_REPOSITORY" --body-file /tmp/need-comment.md
+          echo 'This workflow validates only the no-gateway harness.'
+          echo 'NEED_DISCOVERY_GREEN must not be claimed until buyer-lab/run-local-need-discovery.ps1 produces a real 3-CLI result artifact.'

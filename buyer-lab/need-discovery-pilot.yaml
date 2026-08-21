@@ -1,28 +1,16 @@
 # yaml-language-server: $schema=https://promptfoo.dev/config-schema.json
-description: Coding-agent Need Discovery Pilot - bounded cross-model calibration
+description: Coding-agent Need Discovery Pilot - local subscription/login harness, no paid AI gateway
 
 prompts:
   - file://need-discovery-prompt.txt
 
 providers:
-  - id: vercel:openai/gpt-5.6-sol
-    label: GPT-5.6 Sol
-    config:
-      apiKeyEnvar: VERCEL_AI_GATEWAY_API_KEY
-      maxTokens: 450
-      timeout: 90000
-  - id: vercel:anthropic/claude-opus-5
-    label: Claude Opus 5
-    config:
-      apiKeyEnvar: VERCEL_AI_GATEWAY_API_KEY
-      maxTokens: 450
-      timeout: 90000
-  - id: vercel:google/gemini-3.1-pro-preview
-    label: Gemini 3.1 Pro Preview
-    config:
-      apiKeyEnvar: VERCEL_AI_GATEWAY_API_KEY
-      maxTokens: 450
-      timeout: 90000
+  - id: "exec: node cli-provider.mjs codex"
+    label: Codex CLI GPT-5.6 Sol via ChatGPT login
+  - id: "exec: node cli-provider.mjs claude"
+    label: Claude Code Opus via Claude app login
+  - id: "exec: node cli-provider.mjs gemini"
+    label: Gemini CLI via Google login
 
 tests: file://need-discovery-pilot.csv
 
@@ -31,9 +19,9 @@ defaultTest:
     - type: is-json
 
 commandLineOptions:
-  maxConcurrency: 3
+  maxConcurrency: 1
   repeat: 1
-  delay: 250
+  delay: 500
   cache: false
   share: false
   write: true

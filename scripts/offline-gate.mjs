@@ -47,7 +47,7 @@ for (const p of files(root)) {
 }
 
 console.log('OFFLINE_GATE: authority files');
-for (const required of ['PROJECT_AUTHORITY.md','SOURCE_POLICY.md','DEPLOYMENT_GATES.md','WALLET_TREASURY_POLICY.md','UNIT_ECONOMICS.md','BANKING_OFFRAMP_POLICY.md','migrations/0001_ledger.sql','migrations/0002_channel_attribution.sql']) {
+for (const required of ['PROJECT_AUTHORITY.md','SOURCE_POLICY.md','DEPLOYMENT_GATES.md','WALLET_TREASURY_POLICY.md','UNIT_ECONOMICS.md','BANKING_OFFRAMP_POLICY.md','migrations/0001_ledger.sql','migrations/0002_channel_attribution.sql','migrations/0003_need_signals.sql']) {
   readFileSync(join(root, required));
 }
 

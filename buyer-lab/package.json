@@ -7,11 +7,14 @@
     "eval": "promptfoo eval -c promptfooconfig.yaml -o results/latest.json --no-progress-bar --no-table",
     "eval:agentic": "promptfoo eval -c agentic.yaml -o results/agentic-latest.json --no-progress-bar --no-table",
     "eval:needs": "promptfoo eval -c need-discovery.yaml -o results/needs-latest.json --no-progress-bar --no-table",
+    "eval:needs:local": "promptfoo eval -c need-discovery-pilot.yaml -o results/needs-pilot.json --no-progress-bar --no-table",
     "report": "node summarize.mjs results/latest.json",
     "report:agentic": "node summarize.mjs results/agentic-latest.json",
     "report:needs": "node summarize-needs.mjs results/needs-latest.json",
+    "report:needs:local": "node summarize-needs.mjs results/needs-pilot.json",
     "run": "npm run eval && npm run report",
-    "run:needs": "npm run eval:needs && npm run report:needs"
+    "run:needs": "npm run eval:needs && npm run report:needs",
+    "run:needs:local": "npm run eval:needs:local && npm run report:needs:local"
   },
   "devDependencies": {
     "promptfoo": "0.122.0"

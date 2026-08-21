@@ -7,7 +7,7 @@
   "observability": { "enabled": true },
   "browser": { "binding": "BROWSER" },
   "build": {
-    "command": "npm run check && npx wrangler d1 execute x402-canary-ledger --remote --file migrations/0001_ledger.sql --yes && npx wrangler d1 execute x402-canary-ledger --remote --file migrations/0002_channel_attribution.sql --yes"
+    "command": "npm run check && npx wrangler d1 execute x402-canary-ledger --remote --file migrations/0001_ledger.sql --yes && npx wrangler d1 execute x402-canary-ledger --remote --file migrations/0002_channel_attribution.sql --yes && npx wrangler d1 execute x402-canary-ledger --remote --file migrations/0003_need_signals.sql --yes"
   },
   "vars": {
     "ENVIRONMENT": "production",

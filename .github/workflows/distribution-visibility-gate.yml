@@ -10,6 +10,8 @@ on:
       - "src/payment.ts"
       - "src/index.ts"
       - "src/public-distribution.ts"
+      - "src/need-router.ts"
+      - "migrations/0003_need_signals.sql"
       - "test/**"
       - ".github/workflows/distribution-visibility-gate.yml"
 
@@ -24,7 +26,7 @@ concurrency:
 jobs:
   buyer-visibility:
     runs-on: ubuntu-latest
-    timeout-minutes: 18
+    timeout-minutes: 20
     env:
       ORIGIN: https://x402-canary.nicolas-x402-16f380a7.workers.dev
     steps:
@@ -33,7 +35,7 @@ jobs:
         run: |
           printf '%s\n' "commit=${GITHUB_SHA}" "origin=${ORIGIN}" "run=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" > /tmp/distribution-report.txt
 
-      - name: Checkout exact private source
+      - name: Checkout exact source
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           fetch-depth: 1
@@ -51,18 +53,22 @@ jobs:
         run: |
           set -euo pipefail
           count=0
-          for attempt in $(seq 1 30); do
+          funnel=false
+          for attempt in $(seq 1 36); do
             health="$(curl -fsS --max-time 15 "$ORIGIN/health" || true)"
             count="$(node -e 'try{const j=JSON.parse(process.argv[1]);process.stdout.write(String(j.routes||0))}catch{process.stdout.write("0")}' "$health")"
-            echo "runtime attempt=$attempt routes=$count"
-            if [ "$count" = "32" ]; then break; fi
+            funnel="$(node -e 'try{const j=JSON.parse(process.argv[1]);process.stdout.write(String(j.free_need_router===true))}catch{process.stdout.write("false")}' "$health")"
+            echo "runtime attempt=$attempt routes=$count free_need_router=$funnel"
+            if [ "$count" = "32" ] && [ "$funnel" = "true" ]; then break; fi
             sleep 10
           done
           echo "runtime_routes=${count}" >> /tmp/distribution-report.txt
+          echo "free_need_router=${funnel}" >> /tmp/distribution-report.txt
           test "$count" = "32"
+          test "$funnel" = "true"
           echo 'RUNTIME_32_GREEN=1' >> /tmp/distribution-report.txt
 
-      - name: Wait for public distribution surface from this release line
+      - name: Verify public distribution surface
         shell: bash
         run: |
           set -euo pipefail
@@ -72,10 +78,7 @@ jobs:
             last_code="$(curl -sS --max-time 20 -o /tmp/distribution.json -w '%{http_code}' "$ORIGIN/distribution" || true)"
             echo "distribution attempt=$attempt status=$last_code"
             if [ "$last_code" = "200" ]; then
-              if node -e 'const fs=require("fs");try{const d=JSON.parse(fs.readFileSync("/tmp/distribution.json","utf8"));process.exit(d.status==="public"&&d.paid_route_count===32&&d.buyer_bridge?.provider==="AgentCash"?0:1)}catch{process.exit(1)}'; then
-                ok=1
-                break
-              fi
+              if node -e 'const fs=require("fs");try{const d=JSON.parse(fs.readFileSync("/tmp/distribution.json","utf8"));process.exit(d.status==="public"&&d.paid_route_count===32&&d.buyer_bridge?.provider==="AgentCash"&&d.free_need_router?.price_usd===0&&d.free_need_router?.raw_task_stored===false?0:1)}catch{process.exit(1)}'; then ok=1; break; fi
             fi
             sleep 10
           done
@@ -88,12 +91,40 @@ jobs:
           const ids = (d.capabilities || []).map(x => x.id);
           for (const id of ['npm-symbol-context','npm-api-diff','browser-context']) if (!ids.includes(id)) throw new Error(`distribution_missing=${id}`);
           const skill = fs.readFileSync('/tmp/skill.md','utf8');
-          if (!skill.includes('https://agentcash.dev/skill.md')) throw new Error('agentcash_skill_bridge_missing');
-          if (!skill.includes('npm docs') || !skill.includes('breaking changes') || !skill.includes('browser snapshot')) throw new Error('buyer_intent_keywords_missing');
+          for (const phrase of ['find_paid_tool','https://agentcash.dev/skill.md','npm docs','breaking changes','browser snapshot']) if (!skill.includes(phrase)) throw new Error(`skill_phrase_missing=${phrase}`);
           NODE
           echo 'PUBLIC_DISTRIBUTION_GREEN=1' >> /tmp/distribution-report.txt
 
-      - name: Verify exact OpenAPI launch surface
+      - name: Verify free need-to-paid funnel
+        shell: bash
+        run: |
+          set -euo pipefail
+          code="$(curl -sS --max-time 20 -o /tmp/need.json -w '%{http_code}' -X POST "$ORIGIN/agent/find-tool" \
+            -H 'content-type: application/json' \
+            -H 'x-agent-channel: ci:need-funnel-smoke' \
+            --data '{"task":"Need the exact current TypeScript API signature for an npm package symbol before coding because local types are absent","missing_capability":"current npm docs TypeScript API signature","max_price_usd":0.02,"local_evidence_sufficient":false}')"
+          test "$code" = "200"
+          node <<'NODE'
+          const fs=require('fs');
+          const j=JSON.parse(fs.readFileSync('/tmp/need.json','utf8'));
+          const d=j.data||{};
+          if (d.next_action !== 'BUY_RECOMMENDED_TOOL') throw new Error(`need_action=${d.next_action}`);
+          if (d.recommendation?.route_id !== 'npm-symbol-context') throw new Error(`need_route=${d.recommendation?.route_id}`);
+          if (d.recommendation?.price_usd !== 0.015) throw new Error(`need_price=${d.recommendation?.price_usd}`);
+          if (d.raw_task_stored !== false) throw new Error('raw_task_storage_red');
+          if (d.channel !== 'ci:need-funnel-smoke') throw new Error(`need_channel=${d.channel}`);
+          NODE
+          curl -fsS --max-time 20 -X POST "$ORIGIN/mcp" -H 'content-type: application/json' \
+            --data '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' -o /tmp/mcp-tools.json
+          node <<'NODE'
+          const fs=require('fs');
+          const j=JSON.parse(fs.readFileSync('/tmp/mcp-tools.json','utf8'));
+          const tools=j.result?.tools||[];
+          if (!tools.some(t=>t.name==='find_paid_tool')) throw new Error('mcp_need_router_missing');
+          NODE
+          echo 'NEED_FUNNEL_GREEN=1' >> /tmp/distribution-report.txt
+
+      - name: Verify exact OpenAPI paid launch surface
         shell: bash
         run: |
           set -euo pipefail
@@ -111,7 +142,7 @@ jobs:
           NODE
           echo 'OPENAPI_32_GREEN=1' >> /tmp/distribution-report.txt
 
-      - name: Verify three new routes challenge with x402 before validation
+      - name: Verify three new paid routes challenge with x402
         shell: bash
         run: |
           set -euo pipefail
@@ -145,7 +176,7 @@ jobs:
           done
           echo 'AGENTCASH_DISCOVERY_GREEN=1' >> /tmp/distribution-report.txt
 
-      - name: Verify buyer search; refresh registry only if needed
+      - name: Verify buyer natural-language search; refresh registry if needed
         shell: bash
         run: |
           set -euo pipefail
@@ -162,13 +193,11 @@ jobs:
             search_one 'npm package upgrade breaking changes migration API diff' '/v1/agent/npm-api-diff' /tmp/search-diff.txt && \
             search_one 'browser snapshot rendered web page JavaScript accessibility' '/v1/agent/browser-context' /tmp/search-browser.txt
           }
-
           if search_all; then
             echo 'AGENTCASH_INDEX_ALREADY_VISIBLE=1' >> /tmp/distribution-report.txt
             echo 'AGENTCASH_BUYER_SEARCH_GREEN=1' >> /tmp/distribution-report.txt
             exit 0
           fi
-
           echo 'AGENTCASH_INDEX_REFRESH_NEEDED=1' >> /tmp/distribution-report.txt
           body="$(printf '{\"origin\":\"%s\"}' "$ORIGIN")"
           set +e
@@ -176,7 +205,6 @@ jobs:
           register_rc=${PIPESTATUS[0]}
           set -e
           echo "agentcash_register_rc=${register_rc}" >> /tmp/distribution-report.txt
-
           visible=0
           for attempt in $(seq 1 12); do
             echo "buyer-search retry=$attempt"
@@ -199,15 +227,7 @@ jobs:
             echo '```text'
             cat /tmp/distribution-report.txt 2>/dev/null || true
             echo '```'
-            if [ -f /tmp/distribution.json ]; then
-              echo
-              echo '### distribution.json — tail'
-              echo '```text'
-              tail -c 3000 /tmp/distribution.json
-              echo
-              echo '```'
-            fi
-            for f in /tmp/agentcash-discover.json /tmp/agentcash-register.txt /tmp/search-symbol.txt /tmp/search-diff.txt /tmp/search-browser.txt; do
+            for f in /tmp/need.json /tmp/distribution.json /tmp/agentcash-discover.json /tmp/agentcash-register.txt /tmp/search-symbol.txt /tmp/search-diff.txt /tmp/search-browser.txt; do
               if [ -f "$f" ]; then
                 echo
                 echo "### $(basename "$f") — tail"
