@@ -7,6 +7,7 @@ export interface Env {
   MERCHANT_CONTACT_EMAIL?: string;
   OFFRAMP_VERIFIED?: "true" | "false";
   UNOFFRAMPED_USDC_CAP?: string;
+  BROWSER?: BrowserRun;
   DB?: D1Database;
 }
 
