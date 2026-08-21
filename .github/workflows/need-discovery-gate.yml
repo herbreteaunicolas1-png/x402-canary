@@ -2,6 +2,10 @@ name: x402 Need Discovery Gate
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - buyer-lab/NEED_DISCOVERY_TRIGGER
 
 permissions:
   contents: read
