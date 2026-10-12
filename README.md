@@ -1,62 +1,64 @@
-# x402 Canary v0.5.0 — Agent Context
+# Xynthera AI — EUDI Assurance Developer Kit
 
-A production-minded x402 merchant canary for agent-native paid tools. The commercial method is **need first, product second**.
+> **Temporary repository slug:** this public repository still has the legacy GitHub name `x402-canary`. The project and all new code in this repository are **Xynthera AI**. The old x402 experiment is retired for this repository.
 
-## Need-driven launch products
+Xynthera AI is a vendor-neutral operational assurance layer for EUDI Wallet Relying Parties.
 
-- `POST /v1/agent/npm-symbol-context` — **$0.015** per call
-  - exact published npm package/version metadata;
-  - optional bounded TypeScript declaration snippets for up to eight requested symbols;
-  - intended for coding agents when local package context is absent or stale.
+It does **not** replace your wallet or verifier.
 
-- `POST /v1/agent/npm-api-diff` — **$0.025** per call
-  - compares two exact published npm versions;
-  - reports added/removed/changed declaration symbols plus Node engine and peer-dependency changes;
-  - intended before uncertain package upgrades.
+## Public developer surfaces
 
-- `POST /v1/agent/browser-context` — **$0.03** per call
-  - renders a public HTTPS page through Cloudflare Browser Run;
-  - returns bounded Markdown + accessibility-tree context and page status/title;
-  - rejects private/local targets and accepts no cookies, credentials or arbitrary scripts.
+- **Xynthera AI TypeScript SDK** — `packages/sdk`
+- **Xynthera AI CLI** — `packages/cli`
+- **OpenAPI** — `openapi.yaml`
 
-## Existing experiments
+## Hosted APIs
 
-- `POST /v1/agent/dependency-gate` — **$0.015** per call.
-- `POST /v1/agent/release-gate` — **$0.04** per call.
+- **Xynthera AI RP Guard API** — independent preflight plus ES256 evidence receipts.
+- **Xynthera AI RP Watch API** — continuous trust/registry/certificate monitoring.
+- **Xynthera AI WRPRC Monitor API** — lifecycle monitoring for providers/integrators.
+- **Xynthera AI Registration API** — TS5 v1.5 + selected TS6 semantic validation.
 
-They remain live experiments but are not assumed to have product-market fit.
+### Guard evidence binding
 
-## Need Discovery Lab
+Guard can bind a client-supplied verifier context into the signed receipt:
 
-`buyer-lab/need-discovery.yaml` runs 30 engineering scenarios against GPT-5.6 Sol, Claude Opus 4.6 and Gemini 3.1 Pro Preview **without showing proposed products**. It captures missing external capability, workflow trigger, frequency, freshness/latency requirements and maximum acceptable per-call price. Model statements are hypothesis evidence; real tool adoption and independent payments outrank them.
+- verifier vendor/product/version;
+- deployment identifier;
+- policy version;
+- SHA-256 policy hash.
 
-## Distribution
+The receipt is signed ES256 and can be verified with the public Xynthera JWKS.
 
-The same merchant runtime exposes:
-- x402 HTTP payment on Base;
-- Bazaar discovery metadata;
-- `/openapi.json`, `/llms.txt`, `/llms-full.txt`, `/skill.md`;
-- MCP discovery and endpoint metadata;
-- Claude Code plugin wrapper;
-- Codex skill wrapper;
-- Gemini CLI extension wrapper;
-- AgentCash-compatible discovery/payment flow.
+## Live beta
 
-## Architecture constraints
+Public beta information:
+https://pfxxzsnboehxsefyajml.supabase.co/functions/v1/xynthera-ai-site/
 
-- One merchant Worker: `x402-canary`.
-- Original 29-route portfolio remains unchanged; effective authority adds exactly three new routes for 32 total.
-- One payee and one payment middleware.
-- Cloudflare Workers + D1 settlement ledger + Browser Run binding for the browser-context route.
-- Production network: Base mainnet (`eip155:8453`).
-- Production facilitator: PayAI.
-- No OpenAI/Anthropic/Gemini server-side LLM dependency in the merchant runtime.
-- No PII/social scraping/trading/gambling/medical/legal/tax/custody/unrestricted or authenticated proxying.
-- No automatic paid self-traffic.
-- CleanChef, ProofOps and JuriPilot are out of scope and must never be used as deployment runners.
+OpenAPI:
+https://pfxxzsnboehxsefyajml.supabase.co/functions/v1/xynthera-ai-docs/openapi.yaml
 
-## Safety
+JWKS:
+https://pfxxzsnboehxsefyajml.supabase.co/functions/v1/xynthera-ai-eudi/jwks.json
 
-Production promotion is fail-closed. Runtime 402 challenge parity, expected payee, price, D1 binding, discovery metadata, Browser Run binding/target guards and rollback gates must pass before a new route is marked live for sale.
+## Product boundary
 
-See `PROJECT_AUTHORITY.md`, `FACTORY_AUTHORITY.md`, `DEPLOYMENT_GATES.md`, `SOURCE_POLICY.md` and `UNIT_ECONOMICS.md`.
+This repository intentionally publishes the **client-side developer kit**, not the hosted Xynthera operational engine.
+
+The hosted engine provides:
+- multi-tenant API keys and quotas;
+- scheduled monitoring;
+- trust-state maintenance;
+- webhook delivery/retries;
+- signed evidence receipts;
+- Germany-first national adapters.
+
+## Status
+
+Commercial beta target: **26 October 2026**.
+
+Germany-first. France and other EU adapters follow only when official national interfaces are verified.
+
+## Licence
+
+The SDK and CLI in this repository are MIT licensed. Third-party and EU reference materials retain their own licences.
