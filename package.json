@@ -1,29 +1,17 @@
 {
-  "name": "x402-canary",
-  "version": "0.5.0",
+  "name": "xynthera-ai-developer-kit",
+  "version": "0.1.0-beta.1",
   "private": true,
   "type": "module",
+  "workspaces": [
+    "packages/sdk",
+    "packages/cli"
+  ],
   "scripts": {
-    "dev": "wrangler dev --config wrangler.testnet.jsonc",
-    "deploy": "wrangler deploy",
-    "typecheck": "tsc --noEmit",
-    "test": "node --experimental-strip-types --test test/*.test.ts",
-    "check": "npm run gate:offline && npm run typecheck",
-    "gate:offline": "node scripts/offline-gate.mjs",
-    "gate:visibility": "node scripts/agent-visibility-gate.mjs"
+    "build": "npm run build -w @xynthera-ai/eudi && npm run build -w @xynthera-ai/cli",
+    "test": "npm run test -w @xynthera-ai/eudi"
   },
-  "dependencies": {
-    "@x402/core": "2.22.0",
-    "@x402/evm": "2.22.0",
-    "@x402/extensions": "2.22.0",
-    "@x402/hono": "2.22.0",
-    "hono": "4.13.2",
-    "viem": "2.55.18"
-  },
-  "devDependencies": {
-    "@cloudflare/workers-types": "5.20260819.1",
-    "@types/node": "24.13.3",
-    "typescript": "5.9.2",
-    "wrangler": "4.124.0"
+  "engines": {
+    "node": ">=20"
   }
 }
